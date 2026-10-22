@@ -7,7 +7,7 @@ import { Card, ErrorBox, Label, PageHeader } from '../components/ui'
 const empty = {
   name: '', handle: '', github: '', devpost: '', builds: '', wants: '', speaker_topics: '',
   luma_profile_url: '', email: '', linkedin_url: '',
-  consent_intros: true, consent_speaker: false,
+  consent_intros: false, consent_speaker: false,
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
