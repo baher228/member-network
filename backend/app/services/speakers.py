@@ -46,6 +46,12 @@ async def find_speakers(topic, members, include_external=True):
         candidate['score'] = float(max(0, np.dot(vectors[0], vectors[i+1])))
         candidate['match_reasons'] = [f'Topic similarity to supplied evidence: {candidate["score"]:.3f}', 'Questionnaire speaker consent granted.' if candidate['kind'] == 'member' else 'Public evidence match; location/availability require verification.']
     candidates.sort(key=lambda c: -c['score'])
+    member_candidates = [c for c in candidates if c['kind'] == 'member']
+    external_candidates = [c for c in candidates if c['kind'] == 'external']
+    member_limit = max(15, 30 - len(external_candidates))
+    selected_members = member_candidates[:member_limit]
+    selected = selected_members + external_candidates[:30 - len(selected_members)]
+    selected.sort(key=lambda c: -c['score'])
     sources = []
     for source, states in statuses.items():
         if not states:
@@ -54,4 +60,4 @@ async def find_speakers(topic, members, include_external=True):
             # Preserve partial failure visibility instead of hiding it behind successes.
             status = next((s for s in states if s['status'] == 'failed'), None) or next((s for s in states if s['status'] == 'live'), states[0])
             sources.append(status)
-    return dict(topic=topic, items=candidates[:30], sources=sources)
+    return dict(topic=topic, items=selected, sources=sources)

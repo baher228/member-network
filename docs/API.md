@@ -39,6 +39,13 @@ GET  /eval -> { computed_at, holdout_fraction:0.2, k:5, n_test_users:int, n_hold
 POST /eval/run -> same as GET /eval (recompute)
 GET  /graph -> { nodes:[{id,name,degree,isolated,is_seed}], edges:[{source,target,kind}], metrics:{density:float, n_isolated:int, avg_degree:float} }
 
+### Speaker result selection
+Speaker results keep the same flat `items` array, with at most 30 candidates sorted by score.
+Up to 15 slots are reserved for each kind (consenting members and external public builders);
+unused slots are filled by the other kind's next-ranked candidates. External evidence matches
+therefore remain visible even when member similarity scores are higher. Disabling external
+sources or receiving no external candidates still allows up to 30 consenting members.
+
 ### Evaluation methodology and cache
 `GET /eval` computes on first request and caches the last successful result in memory until
 `POST /eval/run` recomputes or the backend restarts. Member/interaction changes do not invalidate it.
