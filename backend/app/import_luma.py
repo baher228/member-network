@@ -8,6 +8,13 @@ from sqlalchemy import text
 from app.db import engine
 from app.services.member_identity import normal_name, normal_url
 
+def _event_date(value: str) -> date:
+    head = value.strip()[:10]
+    if len(value.strip()) > 10 and value.strip()[10] in 'T ':
+        return date.fromisoformat(head)
+    return date.fromisoformat(head) if len(value.strip()) == 10 else datetime.fromisoformat(value.replace('Z', '+00:00')).date()
+
+
 COLUMNS = ['name', 'luma_profile_url', 'x_url', 'instagram_url', 'linkedin_url', 'github_url',
            'website_url', 'event_name', 'event_url', 'event_date']
 MAX_BYTES = 2 * 1024 * 1024
@@ -35,7 +42,7 @@ def parse_csv(content):
                 for key in COLUMNS:
                     if key.endswith('_url'):
                         row[key] = normal_url(row[key])
-                row['event_date'] = date.fromisoformat(row['event_date']) if len(row['event_date']) == 10 else datetime.fromisoformat(row['event_date'].replace('Z', '+00:00')).date()
+                row['event_date'] = _event_date(row['event_date'])
             except ValueError:
                 raise ValueError(f'CSV row {number}: invalid URL or ISO event date') from None
             records.append(row)
