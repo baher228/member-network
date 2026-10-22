@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     embedder: str = 'sentence-transformers'
     max_cf_weight: float = 0.7
     cf_k0: float = 8.0
+    thread_silence_days: float = 3.0
 
 
 settings = Settings()

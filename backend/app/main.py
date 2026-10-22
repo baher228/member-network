@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from app.routes import api
+from app.routes import api, threads
 from app.services.intros import check_llm, run_intros
 
 logging.basicConfig(level=logging.INFO)
@@ -27,3 +27,4 @@ async def lifespan(app):
 app = FastAPI(title='Member Network', version='1.0.0', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173'], allow_methods=['*'], allow_headers=['*'])
 app.include_router(api.router)
+app.include_router(threads.router)

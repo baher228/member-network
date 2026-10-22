@@ -206,3 +206,53 @@ class GraphResult(BaseModel):
     nodes: list[GraphNode]
     edges: list[GraphEdge]
     metrics: GraphMetrics
+
+
+class ThreadSample(BaseModel):
+    log_text: str
+    suggested_now: datetime
+
+
+class ThreadAnalyzeInput(BaseModel):
+    log_text: str = Field(max_length=500000)
+    now: datetime | None = None
+
+
+class ThreadLogEntry(BaseModel):
+    step: str
+    ok: bool
+    detail: str
+
+
+class ThreadResult(BaseModel):
+    thread_id: str
+    title: str
+    last_message_at: datetime
+    n_messages: int
+    n_participants: int
+    days_silent: float
+    ended_with_question: bool
+    unanswered_by: str | None
+    worth_reviving: bool
+    score: float
+    reasons: list[str]
+    nudge: str | None
+    llm_used: bool
+    status: Literal['drafted', 'skipped', 'failed']
+    error: str | None
+
+
+class ThreadAnalysis(BaseModel):
+    run_id: int
+    parsed_lines: int
+    skipped_lines: int
+    threads: list[ThreadResult]
+    log: list[ThreadLogEntry]
+
+
+class ThreadRunSummary(BaseModel):
+    id: int
+    created_at: datetime
+    n_threads: int
+    n_revive: int
+    llm_status: Literal['available', 'unavailable', 'partial']

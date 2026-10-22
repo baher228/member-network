@@ -49,3 +49,15 @@ All application tables (and migration bookkeeping) have RLS. `anon` has column-l
 CF and content components are independently min-max scaled across eligible candidates for each user; constant components have no discriminative signal and become zero. CF weight is `.7 * n/(n+8)` by default: 0 with no history, .35 at eight interactions, .525 at 24, approaching .7. Content receives the remainder. No weights are adjusted based on evaluation results. Quoted reason snippets are at most 60 characters, truncated at a word boundary with `…`.
 
 Graph degree/density uses unique undirected positive (like/accept) edges; edges include all recorded interaction kinds. Isolation means no positive edges.
+
+## Thread reviver
+
+GET `/api/threads/sample` returns 152 explicitly fictional messages and `suggested_now`.
+POST its `log_text` and `suggested_now` as `now` to `/api/threads/analyze` for reproducible
+rules. Without `now`, analysis uses the real current UTC time. Discord thread markers
+and WhatsApp exports are supported; WhatsApp splits on >36h silence. Revival uses
+deterministic silence/participation/question/offer/closing rules, not LLM judgment.
+Configure `THREAD_SILENCE_DAYS` (default 3) to change the strict silence threshold.
+Only worthy threads get Grok nudge drafts; without a key the nudge is null, never canned.
+Nothing is sent. Analyses persist in RLS-protected `thread_runs`; GET `/api/threads/runs`
+lists the latest 20 summaries. See `docs/API.md` for exact schemas, scoring and privacy.

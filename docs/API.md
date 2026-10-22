@@ -49,3 +49,51 @@ Both slices use the same evaluated users and held-out targets. The cold-start sl
 evaluated user's training likes at two simultaneously (other users/non-like interactions remain).
 Discarded training likes are not held-out labels. `n_test_users` and `n_holdout` describe one split;
 their counts are constant across splits. No hyperparameters are tuned to these metrics.
+
+## Thread reviver
+
+GET `/threads/sample` → `{ log_text:str, suggested_now:iso }`. Bundled **fictional** chat,
+152 messages across eight Discord-style threads. `suggested_now` is `2026-10-20T12:00:00Z`.
+Pass this explicitly to analyze for a reproducible demo; omitting `now` uses the **real current UTC time**.
+
+POST `/threads/analyze` body `{ log_text:str, now?:iso|null }` →
+```
+{ run_id:int, parsed_lines:int, skipped_lines:int,
+  threads:[{ thread_id:str, title:str, last_message_at:iso, n_messages:int,
+    n_participants:int, days_silent:float, ended_with_question:bool,
+    unanswered_by:str|null, worth_reviving:bool, score:float, reasons:[str],
+    nudge:str|null, llm_used:bool, status:"drafted"|"skipped"|"failed", error:str|null }],
+  log:[{ step:str, ok:bool, detail:str }] }
+```
+
+Accepted line formats (naive timestamps interpreted as UTC):
+```
+2026-10-01 18:04 | #channel-or-thread | Maya R.: message
+[01/10/2026, 18:04] Maya R.: message
+```
+Discord markers group threads; WhatsApp messages are sorted chronologically and split on
+strictly more than 36 hours of silence. Bad/blank lines are counted and logged individually;
+multiline continuations and system messages without an author are not supported. Empty or
+entirely invalid input returns an empty analysis with diagnostics, persisted like other runs.
+Input limit: 500,000 characters. Dates/times or formats that cannot be parsed are skipped.
+
+Deterministic selection: silence **>3 days** (`THREAD_SILENCE_DAYS`), at least two distinct
+participants **or** a terminal unanswered question/open offer, and no closing such as
+"thanks"/"solved" unless there is a new question/offer. Only the final message is treated as
+unanswered; `unanswered_by` is its author (including open offers). `ended_with_question`
+means the final message contains a question mark. Future last messages have zero silence.
+Eligible scores sum silence (up to .4 at 14 days), question/offer (.3), participation (up to
+.2 at two people), activity (up to .1 at ten messages); ineligible threads score zero.
+Each score/decision has concrete reasons. Results are sorted descending by score.
+
+Only selected threads are sent to Grok for a facts-only, Pydantic-validated nudge draft.
+Nudges are **never sent**. Missing key: `nudge:null, llm_used:false, status:"drafted"`.
+LLM error/invalid JSON: `status:"failed"` and sanitized error. Unselected: `status:"skipped"`.
+`run_id` identifies the persisted result JSON; raw exports are not stored separately.
+Avoid submitting private chat logs to an untrusted demo; selected last-message facts may
+be sent to xAI when `XAI_API_KEY` is configured.
+
+GET `/threads/runs` → last 20 `[{id:int, created_at:iso, n_threads:int, n_revive:int,
+llm_status:"available"|"unavailable"|"partial"}]`, newest first. `partial` means at least
+one LLM failure; `unavailable` means no key. The `thread_runs` table has RLS and no anon
+or authenticated access; backend owner/service-role access only.
