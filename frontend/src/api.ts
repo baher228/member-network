@@ -11,7 +11,7 @@ export type RecResponse = {
   model: { n_interactions: number; member_interactions: number; cf_weight: number; content_weight: number; embedder: string }
   items: Recommendation[]
 }
-export type IntroStatus = 'drafted' | 'sent' | 'accepted' | 'declined' | 'failed'
+export type IntroStatus = 'drafted' | 'sent' | 'accepted' | 'declined' | 'failed' | 'skipped'
 export type Intro = {
   id: number; run_id: number; member_id: number; member_name: string; target_id: number; target_name: string
   score: number; reasons: Reason[]; message: string | null; llm_used: boolean; status: IntroStatus

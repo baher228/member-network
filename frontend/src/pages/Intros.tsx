@@ -4,7 +4,7 @@ import { useAsync } from '../useAsync'
 import { Badge, Card, Empty, ErrorBox, Label, Loading, PageHeader, fmtTime, type Tone } from '../components/ui'
 import { Reasons } from '../components/reasons'
 
-const statusTone: Record<IntroStatus, Tone> = { drafted: 'neutral', sent: 'fg', accepted: 'ok', declined: 'bad', failed: 'bad' }
+const statusTone: Record<IntroStatus, Tone> = { drafted: 'neutral', sent: 'fg', accepted: 'ok', declined: 'bad', failed: 'bad', skipped: 'neutral' }
 
 function RunRow({ run, active, onClick }: { run: IntroRun; active: boolean; onClick: () => void }) {
   return (
@@ -38,9 +38,11 @@ function IntroCard({ intro, onRespond, busy }: { intro: Intro; onRespond: (r: 'a
       <div className="mt-3">
         {intro.message
           ? <div className="rounded-lg border border-line bg-bg p-3 text-sm leading-relaxed whitespace-pre-wrap">{intro.message}<div className="label mt-2">{intro.llm_used ? 'Written by the LLM from the reasons below' : 'Rule-based'}</div></div>
-          : <div className="rounded-lg border border-dashed border-line p-3 text-sm text-muted">No message — LLM unavailable, rule-only reasoning. The structured reasons below are what the intro is based on.</div>}
+          : intro.status === 'skipped'
+            ? <div className="rounded-lg border border-dashed border-line p-3 text-sm text-muted">Not drafted this run — {intro.error?.replace(/^skipped:\s*/, '') ?? 'skipped'}. Only the top-scored pairs get an LLM draft to keep cost low; the structured reasons below still apply.</div>
+            : <div className="rounded-lg border border-dashed border-line p-3 text-sm text-muted">No message — LLM unavailable, rule-only reasoning. The structured reasons below are what the intro is based on.</div>}
       </div>
-      {intro.error && <div className="mt-2 font-mono text-xs text-bad/90">Error · {intro.error}</div>}
+      {intro.error && intro.status !== 'skipped' && <div className="mt-2 font-mono text-xs text-bad/90">Error · {intro.error}</div>}
       <details className="mt-3">
         <summary className="label cursor-pointer select-none hover:text-fg">Reasons</summary>
         <div className="mt-2"><Reasons reasons={intro.reasons} /></div>
@@ -107,7 +109,7 @@ export default function Intros() {
         </div>
         <div>
           <div className="mb-3 flex flex-wrap gap-1">
-            {(['all', 'drafted', 'sent', 'accepted', 'declined', 'failed'] as const).map((s) => (
+            {(['all', 'drafted', 'sent', 'accepted', 'declined', 'failed', 'skipped'] as const).map((s) => (
               <button key={s} onClick={() => setFilter(s)} className={`rounded-md border px-2 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors duration-150 ${filter === s ? 'border-[#444] bg-hover text-fg' : 'border-line text-muted hover:text-fg'}`}>
                 {s} {s === 'all' ? intros.data?.length ?? 0 : counts[s] ?? 0}
               </button>
