@@ -112,7 +112,7 @@ def test_run_no_key_stays_drafted(monkeypatch):
         return [{'id': 1}]
     monkeypatch.setattr(intros, 'execute', execute)
     intros._run_intros('manual')
-    update = next(params for sql, params in writes if sql.startswith('UPDATE intros'))
+    update = next(params for sql, params in writes if sql.startswith('INSERT INTO intros('))[0]
     assert update['message'] is None and update['llm_used'] is False
     assert update['status'] == 'drafted'
     run = next(params for sql, params in writes if sql.startswith('UPDATE intro_runs'))

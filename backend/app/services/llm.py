@@ -1,8 +1,23 @@
 import logging
-from openai import OpenAI
+from openai import OpenAI, AuthenticationError, PermissionDeniedError, NotFoundError
 from app.config import settings
 
 log = logging.getLogger(__name__)
+
+
+class RunCircuitBreaker:
+    def __init__(self):
+        self.error = None
+
+    def record_failure(self, exc):
+        status = getattr(exc, 'status_code', None)
+        if status not in (401, 402, 403, 404):
+            status = next((code for error_type, code in (
+                (AuthenticationError, 401), (PermissionDeniedError, 403), (NotFoundError, 404))
+                if isinstance(exc, error_type)), None)
+        if status is not None:
+            detail = f'HTTP {status}{"; provider credits unavailable" if status == 402 else ""}'
+            self.error = f'Skipped LLM call: provider rejected an earlier request in this run ({detail})'
 
 
 def get_api_key():
@@ -19,7 +34,7 @@ def health():
 def create_client(api_key=None):
     return OpenAI(api_key=get_api_key() if api_key is None else api_key,
                   base_url='https://generativelanguage.googleapis.com/v1beta/openai/' if settings.llm_provider == 'gemini' else 'https://api.x.ai/v1',
-                  timeout=20, max_retries=0)
+                  timeout=15, max_retries=0)
 
 
 def generate_json(messages, response_model, client=None, api_key=None):

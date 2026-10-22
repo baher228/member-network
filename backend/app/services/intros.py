@@ -13,7 +13,9 @@ class IntroMessage(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
 
 
-def draft_intro(recommendation, client=None, api_key=None):
+def draft_intro(recommendation, client=None, api_key=None, circuit=None):
+    if circuit is not None and circuit.error:
+        return dict(message=None, llm_used=False, status='failed', error=circuit.error)
     key = llm.get_api_key() if api_key is None else api_key
     if not key:
         return dict(message=None, llm_used=False, status='drafted', error=None)
@@ -24,6 +26,8 @@ def draft_intro(recommendation, client=None, api_key=None):
             IntroMessage, client=client, api_key=key).message
         return dict(message=message, llm_used=True, status='sent', error=None)
     except Exception as exc:
+        if circuit is not None:
+            circuit.record_failure(exc)
         return dict(message=None, llm_used=True, status='failed', error=llm.sanitized_error(exc))
 
 
@@ -52,6 +56,8 @@ def _run_intros(trigger):
     run = execute('INSERT INTO intro_runs(trigger,n_members) VALUES (:trigger,:n) RETURNING *', {'trigger': trigger, 'n': len(members)})[0]
     previous = rows('SELECT member_id,target_id FROM intros')
     drafted = failed = skipped = 0
+    pending = []
+    circuit = llm.RunCircuitBreaker()
     try:
         for member in members:
             if not member['consent_intros']:
@@ -63,11 +69,9 @@ def _run_intros(trigger):
                 continue
             recommendation = items[0]
             pair = dict(member_id=member['id'], target_id=recommendation['member']['id'])
-            intro = execute('''INSERT INTO intros(run_id,member_id,target_id,score,reasons,status)
-                        VALUES (:run_id,:member_id,:target_id,:score,CAST(:reasons AS jsonb),'drafted') RETURNING *''',
-                        dict(run_id=run['id'], **pair, score=recommendation['score'], reasons=json.dumps(recommendation['reasons'])))[0]
-            outcome = draft_intro(recommendation)
-            execute('''UPDATE intros SET message=:message,llm_used=:llm_used,status=:status,error=:error,updated_at=now() WHERE id=:id''', dict(id=intro['id'], **outcome))
+            outcome = draft_intro(recommendation, circuit=circuit)
+            pending.append(dict(run_id=run['id'], **pair, score=recommendation['score'],
+                                reasons=json.dumps(recommendation['reasons']), **outcome))
             previous.append(pair)
             if outcome['status'] == 'failed':
                 failed += 1
@@ -80,6 +84,9 @@ def _run_intros(trigger):
         notes = f'Run interrupted: {type(exc).__name__}. Delivery is simulated.'
         raise
     finally:
+        if pending:
+            execute('''INSERT INTO intros(run_id,member_id,target_id,score,reasons,message,llm_used,status,error)
+                VALUES (:run_id,:member_id,:target_id,:score,CAST(:reasons AS jsonb),:message,:llm_used,:status,:error)''', pending)
         execute('''UPDATE intro_runs SET finished_at=now(),n_drafted=:drafted,n_failed=:failed,n_skipped=:skipped,
                    llm_status=:llm_status,notes=:notes WHERE id=:id''', dict(id=run['id'], drafted=drafted, failed=failed, skipped=skipped, llm_status=llm_status, notes=notes))
     return dict(run=rows('SELECT * FROM intro_runs WHERE id=:id', {'id': run['id']})[0], intros=list_intros(run['id']))
