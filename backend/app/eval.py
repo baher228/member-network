@@ -87,6 +87,12 @@ def get_evaluation(refresh=False):
         return _last_result
 
 
+def invalidate_cache():
+    global _last_result
+    with _cache_lock:
+        _last_result = None
+
+
 def main():
     result = evaluate(*synthetic_data())
     print(f'Users: {result["n_test_users"]}; holdout: {result["n_holdout"]}; k=5')

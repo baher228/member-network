@@ -10,6 +10,7 @@ from app.services.llm import health as llm_health
 from app.services.speakers import find_speakers
 from app.services.graph import graph
 from app.eval import get_evaluation
+from app.services.demo import reset_demo
 
 router = APIRouter(prefix='/api')
 scheduler = None
@@ -25,6 +26,11 @@ def health():
         db = False
     job = scheduler.get_job('weekly-intros') if scheduler else None
     return dict(db=db, llm=llm_health(), n_members=n_members, n_interactions=n_interactions, scheduler_next_run=job.next_run_time if job else None)
+
+
+@router.post('/demo/reset', response_model=m.DemoResetResult)
+def demo_reset():
+    return reset_demo()
 
 
 @router.post('/members', response_model=m.Member)

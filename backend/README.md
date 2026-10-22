@@ -77,6 +77,24 @@ CF and content components are independently min-max scaled across eligible candi
 
 Graph degree/density uses unique undirected positive (like/accept) edges; edges include all recorded interaction kinds. Isolation means no positive edges.
 
+## Reset demo safely
+
+`POST /api/demo/reset` restores the fixed-RNG seed profiles and seed-to-seed interactions,
+deletes only seed-to-seed intros, then removes intro runs with no remaining intros. All
+non-seed members and relationships involving them, surviving run metadata, thread runs
+and evidence remain untouched. Unlike the setup CLI `python -m app.seed`, this endpoint
+does **not** clear all intros/runs. It uses one transaction in `network`, waits for active
+intro runs, and invalidates eval/embedding caches after commit. Repeated resets preserve
+the same seed interaction rows, IDs and timestamps. See `docs/API.md` for count semantics.
+
+Response fields (all integer counts): `seed_members_restored`, `seed_members_created`,
+`seed_interactions_restored`, `interactions_deleted`, `interactions_created`,
+`intros_deleted`, `intro_runs_deleted`. This is an unauthenticated demo/admin endpoint.
+
+Postgres integration tests are opt-in and only allow a local database ending in `_test`:
+`DEMO_RESET_TEST_DATABASE_URL=postgresql+psycopg://postgres:membernetwork@localhost:5432/member_network_demo_reset_test pytest -q`.
+Create that separate empty test database first; the tests reset only its `network` tables.
+
 ## Thread reviver
 
 GET `/api/threads/sample` returns 152 explicitly fictional messages and `suggested_now`.

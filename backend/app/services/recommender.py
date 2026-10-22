@@ -21,6 +21,10 @@ class Embedder:
         with self.lock:
             return self._encode(texts, keys)
 
+    def clear_cache(self):
+        with self.lock:
+            self.cache.clear()
+
     def _encode(self, texts, keys=None):
         if not self.attempted and self.mode != 'tf-idf':
             self.attempted = True

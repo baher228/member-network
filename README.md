@@ -85,6 +85,12 @@ cd frontend && npm install && npm run dev   # http://localhost:5173 (proxies /ap
 Default `DATABASE_URL` is the local container above. For Supabase, set `DATABASE_URL` to the pooled connection string and run `python -m app.migrate`.
 
 ### Tests & checks
+`POST /api/demo/reset` restores the 80 demo profiles and 512 seed-to-seed likes in one
+`network` transaction, removes seed-only intros and empty runs, and clears eval/embedding
+caches. Non-seed members, any relationships involving them, and thread runs are preserved.
+It is safe to repeat without changing canonical interaction IDs/timestamps. See
+`docs/API.md` for the exact integer-count response and ownership rules. This demo/admin
+endpoint is unauthenticated; do not expose the API publicly.
 
 ```sh
 cd backend && .venv/bin/pytest -q        # core logic: CF, exclusions, hybrid weights, intros w/o LLM, eval, thread rules

@@ -168,6 +168,16 @@ class EvalResult(BaseModel):
     notes: list[str]
 
 
+class DemoResetResult(BaseModel):
+    seed_members_restored: int
+    seed_members_created: int
+    seed_interactions_restored: int
+    interactions_deleted: int
+    interactions_created: int
+    intros_deleted: int
+    intro_runs_deleted: int
+
+
 class LLMHealth(BaseModel):
     provider: Literal['gemini', 'grok']
     available: bool

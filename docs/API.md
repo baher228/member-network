@@ -22,6 +22,9 @@ SpeakerCandidate = { kind:"member"|"external", member_id:int|null, name:str, han
 ## Endpoints
 GET  /health -> { db:bool, llm:{provider:"gemini"|"grok", available:bool, model:str|null, reason:str|null}, n_members:int, n_interactions:int }
 POST /members (questionnaire body: Member minus id/is_seed/created_at) -> Member   (422 on invalid)
+POST /demo/reset -> { seed_members_restored:int, seed_members_created:int,
+       seed_interactions_restored:int, interactions_deleted:int, interactions_created:int,
+       intros_deleted:int, intro_runs_deleted:int }
 GET  /members -> [ Member & { likes_given:int, likes_received:int, connections:int, isolated:bool } ]
 GET  /members/{id} -> Member
 GET  /members/{id}/recommendations?k=10 -> { member_id, model:{ n_interactions:int, member_interactions:int,
@@ -38,6 +41,27 @@ GET  /eval -> { computed_at, holdout_fraction:0.2, k:5, n_test_users:int, n_hold
                   precision_std?:float|null, slice?:"all"|"cold-start"|null }], notes:[str] }
 POST /eval/run -> same as GET /eval (recompute)
 GET  /graph -> { nodes:[{id,name,degree,isolated,is_seed}], edges:[{source,target,kind}], metrics:{density:float, n_isolated:int, avg_degree:float} }
+
+### Demo reset
+`POST /demo/reset` is an unauthenticated demo/admin operation; do not expose this API publicly.
+In one transaction in `network`, it restores the fixed-RNG (42) generated profiles and
+the exact generated interaction set between seed members. Ownership is determined by
+**both members' `is_seed` flags**, not an interaction's flag: demo UI likes/passes/accepts
+between seed members are removed unless they already match a canonical seed interaction.
+Relationships involving either non-seed member are untouched, even if marked `is_seed=true`.
+Only seed-to-seed intros are deleted, followed by intro runs with no remaining intros.
+Non-seed members, mixed/non-seed interactions and intros, surviving run records,
+`thread_runs` and evidence caches are unchanged. Eval and in-memory embedding caches are cleared
+after commit; the next eval GET recomputes. Failed transactions leave those caches intact.
+
+`seed_members_restored` counts all 80 canonical profiles, including `seed_members_created`
+if any were missing. Profiles match existing seed handles (including legacy handles), with
+remaining seed IDs used in ascending order for edited handles; non-seed IDs are never reused.
+`seed_interactions_restored` is the final canonical relationship count (512), while
+`interactions_created`/`interactions_deleted` report actual inserted/deleted rows. Existing
+canonical rows are retained; duplicate/noncanonical seed-to-seed rows are removed.
+Repeated resets preserve row IDs and timestamps after the first reset, not just matching
+relationship counts. There is no reseeding of sequences or deletion of members.
 
 ### LLM availability
 Health's `llm.provider` is additive. `available` means the selected provider's key is
