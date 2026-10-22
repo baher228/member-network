@@ -13,6 +13,20 @@ export default function Members() {
   const [onlyIsolated, setOnlyIsolated] = useState(false)
   const { setMemberId } = useSession()
   const nav = useNavigate()
+  const [resetting, setResetting] = useState(false)
+  const [resetMsg, setResetMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const reset = async () => {
+    if (!confirm('Restore the seeded demo state? Non-seed members and their data are kept.')) return
+    setResetting(true); setResetMsg(null)
+    try {
+      const r = await api.resetDemo()
+      const parts = Object.entries(r).filter(([, v]) => typeof v === 'number').map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`)
+      setResetMsg({ ok: true, text: `Demo reset · ${parts.join(' · ')}` })
+      reload(); graph.reload()
+    } catch (e) {
+      setResetMsg({ ok: false, text: e instanceof Error ? e.message : String(e) })
+    } finally { setResetting(false) }
+  }
   const rows = useMemo(() => (data ?? []).filter((m) =>
     (!onlyIsolated || m.isolated) &&
     `${m.name} ${m.builds} ${m.wants} ${m.speaker_topics}`.toLowerCase().includes(q.toLowerCase())), [data, q, onlyIsolated])
@@ -20,9 +34,13 @@ export default function Members() {
   return (
     <div>
       <PageHeader eyebrow="Lead view" title="Members">
-        <input className="input w-56" placeholder="Search builds, wants, topics" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input w-full sm:w-56" placeholder="Search builds, wants, topics" value={q} onChange={(e) => setQ(e.target.value)} />
         <button className={`btn ${onlyIsolated ? 'bg-hover text-fg' : 'text-muted'}`} onClick={() => setOnlyIsolated(!onlyIsolated)}>Isolated only</button>
+        <button className="btn text-muted" disabled={resetting} onClick={reset}>{resetting ? 'Resetting…' : 'Reset demo'}</button>
       </PageHeader>
+      {resetMsg && (resetMsg.ok
+        ? <div className="mb-4 font-mono text-xs text-muted">{resetMsg.text}</div>
+        : <div className="mb-4"><ErrorBox error={resetMsg.text} /></div>)}
       {graph.data && (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[

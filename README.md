@@ -154,6 +154,8 @@ FastAPI (MIT), Pydantic (MIT), SQLAlchemy (MIT), psycopg (LGPL-3.0), httpx (BSD-
 
 ## 2-minute demo script
 
+For the 3-minute live version see [DEMO.md](DEMO.md).
+
 1. **(15s) Problem.** "Leads know members as phone numbers. Nobody gets introduced." Open `/members`: 80 demo members, the graph, 2 isolated members.
 2. **(25s) Opt in.** `/join`: fill name, builds "voice agents", wants "help with payments", tick both consents → Join. You're now "Viewing as" the new member.
 3. **(25s) For you.** Cold start: CF weight 0, suggestions come from content ("X builds payments infra; you want help with payments"). Like two people → header shows interactions grow, CF weight rises, reasons now include "You liked A and B; N people who liked them also connected with C".

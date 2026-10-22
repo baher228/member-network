@@ -93,4 +93,5 @@ export const api = {
   analyzeThreads: (log_text: string, now?: string) => post<ThreadAnalysis>('/threads/analyze', now ? { log_text, now } : { log_text }),
   threadRuns: () => req<ThreadRun[]>('/threads/runs'),
   graph: () => req<GraphResponse>('/graph'),
+  resetDemo: () => post<Record<string, unknown>>('/demo/reset'),
 }
