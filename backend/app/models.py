@@ -81,7 +81,7 @@ class Intro(BaseModel):
     reasons: list[Reason]
     message: str | None
     llm_used: bool
-    status: Literal['drafted', 'sent', 'accepted', 'declined', 'failed']
+    status: Literal['drafted', 'sent', 'accepted', 'declined', 'failed', 'skipped']
     error: str | None
     created_at: datetime
     updated_at: datetime
@@ -186,7 +186,7 @@ class LLMCallResult(BaseModel):
 
 
 class LLMHealth(BaseModel):
-    provider: Literal['gemini', 'grok']
+    provider: Literal['cursor', 'gemini', 'grok']
     available: bool
     model: str | None
     reason: str | None

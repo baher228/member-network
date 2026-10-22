@@ -28,7 +28,7 @@ def draft_intro(recommendation, client=None, api_key=None, circuit=None):
     except Exception as exc:
         if circuit is not None:
             circuit.record_failure(exc)
-        return dict(message=None, llm_used=True, status='failed', error=llm.sanitized_error(exc))
+        return dict(message=None, llm_used=not isinstance(exc, llm.CallBudgetExhausted), status='failed', error=llm.sanitized_error(exc))
 
 
 INTRO_QUERY = '''SELECT i.*, m.name AS member_name,t.name AS target_name FROM intros i
@@ -54,10 +54,13 @@ def run_intros(trigger='manual'):
 def _run_intros(trigger):
     members, interactions = snapshot()
     run = execute('INSERT INTO intro_runs(trigger,n_members) VALUES (:trigger,:n) RETURNING *', {'trigger': trigger, 'n': len(members)})[0]
-    previous = rows('SELECT member_id,target_id FROM intros')
+    previous = rows("SELECT member_id,target_id FROM intros WHERE status<>'skipped'")
+    cached = {(row['member_id'], row['target_id']): row['message']
+              for row in rows('SELECT member_id,target_id,message FROM llm_cache')}
     drafted = failed = skipped = 0
     pending = []
     circuit = llm.RunCircuitBreaker()
+    plans = []
     try:
         for member in members:
             if not member['consent_intros']:
@@ -69,11 +72,27 @@ def _run_intros(trigger):
                 continue
             recommendation = items[0]
             pair = dict(member_id=member['id'], target_id=recommendation['member']['id'])
-            outcome = draft_intro(recommendation, circuit=circuit)
+            plans.append((pair, recommendation))
+            previous.append(pair)
+        uncached = 0
+        for pair, recommendation in sorted(plans, key=lambda plan: (-plan[1]['score'], plan[0]['member_id'], plan[0]['target_id'])):
+            key = (pair['member_id'], pair['target_id'])
+            if key in cached:
+                outcome = dict(message=IntroMessage(message=cached[key]).message, llm_used=False, status='sent', error=None)
+            elif uncached >= llm.settings.intro_llm_max_per_run:
+                outcome = dict(message=None, llm_used=False, status='skipped', error='skipped: budget cap')
+            else:
+                uncached += 1
+                outcome = draft_intro(recommendation, circuit=circuit)
+                if outcome['message'] is not None:
+                    execute('''INSERT INTO llm_cache(member_id,target_id,message) VALUES (:member_id,:target_id,:message)
+                        ON CONFLICT (member_id,target_id) DO NOTHING''', dict(**pair, message=outcome['message']))
+                    cached[key] = outcome['message']
             pending.append(dict(run_id=run['id'], **pair, score=recommendation['score'],
                                 reasons=json.dumps(recommendation['reasons']), **outcome))
-            previous.append(pair)
-            if outcome['status'] == 'failed':
+            if outcome['status'] == 'skipped':
+                skipped += 1
+            elif outcome['status'] == 'failed':
                 failed += 1
             else:
                 drafted += 1
@@ -99,8 +118,8 @@ def respond(intro_id, response):
         if intro['status'] in ('accepted', 'declined'):
             if intro['status'] != response:
                 raise ValueError('Intro already has a different response')
-        elif intro['status'] == 'failed':
-            raise ValueError('Cannot respond to a failed intro')
+        elif intro['status'] in ('failed', 'skipped'):
+            raise ValueError('Cannot respond to a failed or skipped intro')
         else:
             conn.execute(text('UPDATE intros SET status=:status,updated_at=now() WHERE id=:id'), {'id': intro_id, 'status': response})
             kind = 'accept' if response == 'accepted' else 'decline'

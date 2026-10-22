@@ -127,7 +127,7 @@ def test_intro_run_circuit_and_new_run_retries(monkeypatch, status, first_succes
         assert len(batches) == 1
         outcomes = batches[0]
         assert len(outcomes) == 3
-        assert len(writes) == 3
+        assert len(writes) == 3 + int(first_success)
         assert [row['status'] for row in outcomes] == (['sent', 'failed', 'failed'] if first_success else ['failed'] * 3)
         assert all(row['message'] is None for row in outcomes[int(first_success):])
         if first_success:

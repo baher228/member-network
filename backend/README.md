@@ -40,7 +40,14 @@ For a separate verification server without changing port 8000, run from `backend
 `.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001`.
 
 `backend/.env` is optional and ignored by git; `.env.example` lists environment names only.
-`LLM_PROVIDER=gemini` is the default, using `GEMINI_API_KEY` and `GEMINI_MODEL`
+`LLM_PROVIDER=cursor` is the default when `CURSOR_API_KEY` is configured and the provider
+is unset; otherwise Gemini is the default. `LLM_MODEL` overrides the selected model.
+Cursor defaults to `gemini-3.7-flash-high`; `CURSOR_MODEL` is a fallback alias, with
+`cursor-grok-4.5-high-fast` another option. Install with `curl -fsS https://cursor.com/install | bash`.
+The headless CLI runs with an argv list, no shell, a fresh empty temporary cwd, the key
+in its environment only, and a 60-second timeout. It is told not to use tools or files.
+JSON is extracted from the envelope's result and validated, never replaced by canned text.
+`LLM_PROVIDER=gemini` uses `GEMINI_API_KEY` and `GEMINI_MODEL`
 (default `gemini-3.8-flash`) through Google's OpenAI-compatible endpoint. Optional
 `LLM_PROVIDER=grok` uses `XAI_API_KEY` and `GROK_MODEL` (default `grok-3-mini`).
 Both intros and thread nudges share one client module. Gemini is prompted for JSON without
@@ -51,6 +58,17 @@ failed draft, with no key or provider response body exposed.
 Without the selected provider's key, intros remain drafted with **null messages**, never
 canned prose. Generated messages are marked sent for **simulated delivery only**. No
 email/SMS is sent. Startup lists available xAI model IDs only when Grok is selected.
+
+Every provider shares a hard cap of **40 generation attempts per backend process**, including
+thread nudges and startup probes. Beyond that, requests explicitly fail with `call budget exhausted`.
+There are zero application/SDK retries. Cursor skips the startup probe to save calls, so health
+is `not_checked` until a real call succeeds or fails; it reports the selected real model.
+`INTRO_LLM_MAX_PER_RUN` defaults to 10: the highest-scoring uncached pairs get generation slots;
+remaining pairs have status `skipped`, null text and error `skipped: budget cap`.
+Successful text is cached by directed `(member_id,target_id)` in `network.llm_cache`, reused
+without an LLM call (`llm_used=false`) even across providers. Cache hits do not consume the
+run/process call budgets. Demo reset leaves this cache intact; deleting a member removes its
+cache entries. Existing successful intro text is backfilled by migration 003.
 
 `EMBEDDER=tf-idf` forces the fast offline fallback. Default uses CPU `all-MiniLM-L6-v2` and caches embeddings by member/text hash; model-load failures are logged and the API reports `tf-idf` honestly. Initial model loading may download Hugging Face weights. Optional `MAX_CF_WEIGHT` (default .7) and `CF_K0` (default 8) control blending.
 

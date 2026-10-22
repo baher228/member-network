@@ -10,7 +10,7 @@ Reason = { kind:"cf"|"content"|"popularity", text:str, weight:float, evidence:ob
   cf evidence: { liked:[{id,name}], co_likers:int }   content evidence: { your_want:str, their_build:str, similarity:float }
 Recommendation = { member:Member, score:float, cf_score:float, content_score:float, reasons:[Reason] }
 Intro = { id, run_id, member_id, member_name, target_id, target_name, score:float, reasons:[Reason],
-  message:str|null, llm_used:bool, status:"drafted"|"sent"|"accepted"|"declined"|"failed",
+  message:str|null, llm_used:bool, status:"drafted"|"sent"|"accepted"|"declined"|"failed"|"skipped",
   error:str|null, created_at, updated_at }
 IntroRun = { id, trigger:"manual"|"scheduled", started_at, finished_at|null, n_members:int,
   n_drafted:int, n_failed:int, n_skipped:int, llm_status:"available"|"unavailable"|"partial", notes:str|null }
@@ -20,7 +20,7 @@ SpeakerCandidate = { kind:"member"|"external", member_id:int|null, name:str, han
   match_reasons:[str], evidence:[Evidence] }
 
 ## Endpoints
-GET  /health -> { db:bool, llm:{provider:"gemini"|"grok", available:bool, model:str|null, reason:str|null,
+GET  /health -> { db:bool, llm:{provider:"cursor"|"gemini"|"grok", available:bool, model:str|null, reason:str|null,
        state:"not_checked"|"working"|"unavailable",
        last_call:{ok:bool, at:iso, http_status:int|null, error:str|null}|null}, n_members:int, n_interactions:int }
 POST /members (questionnaire body: Member minus id/is_seed/created_at) -> Member   (422 on invalid)
@@ -67,16 +67,29 @@ relationship counts. There is no reseeding of sequences or deletion of members.
 
 ### LLM availability
 Health's `llm.provider` is additive. `available` means the selected provider's key is
-configured, not that its credits/model are usable. Gemini is the default; Grok is optional.
+configured, not that its credits/model are usable. Cursor is the default when its key is set
+and `LLM_PROVIDER` is unset, otherwise Gemini. `LLM_MODEL` overrides the selected model;
+Cursor defaults to `gemini-3.7-flash-high`, with `CURSOR_MODEL` as a fallback alias.
 `state` is `unavailable` if the key is missing or the last generation failed, `working`
 after a successful validated generation, and `not_checked` before any generation.
 `last_call` records the most recently completed real generation attempt from intros,
 threads or the startup probe, in process-wide memory; it resets to null on restart.
 Circuit-breaker skips and missing-key shortcuts do not overwrite it. `http_status` is
 200 for successful HTTP responses (including invalid structured output), the provider's
-status on HTTP errors, or null for failures with no HTTP response. Errors/reasons are sanitized.
+status on HTTP errors, or null for failures with no HTTP response and for Cursor CLI calls.
+Errors/reasons are sanitized. Process-budget rejections also record an explicit failure.
 One small startup probe runs in the background at most once per process when a key is
-configured; it never blocks startup or creates intro/thread rows.
+configured; it never blocks startup or creates intro/thread rows. Cursor skips the probe.
+
+All providers share 40 generation attempts per process, with no application/SDK retries.
+Exhaustion fails explicitly with `call budget exhausted`; thread nudges share the same cap.
+Intro runs select at most `INTRO_LLM_MAX_PER_RUN` (default 10) uncached pairs by descending
+score, with deterministic member/target ID ties. Other selected pairs produce intro rows
+with `status:"skipped"`, `message:null`, `llm_used:false`, `error:"skipped: budget cap"` and
+increment `n_skipped`, not `n_failed`. These skipped rows do not exclude future matches.
+Cached text is stored permanently by directed pair in `network.llm_cache`, including
+backfilled successful intros, and reused with `llm_used:false` without spending call slots.
+Demo reset preserves the cache. Cached text is reused across models/providers, never regenerated.
 
 Both intro and thread run `llm_status` use actual counts: no key or no drafted outcomes
 means `unavailable`; drafted plus failed is `partial`; drafted without failures is

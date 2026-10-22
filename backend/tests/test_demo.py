@@ -9,6 +9,7 @@ from app import db, eval as evaluation, migrate
 from app.routes import api
 from app.seed import synthetic_data
 from app.services import demo
+from app.services import intros, llm
 from app.services.recommender import Embedder, recommend
 
 
@@ -26,7 +27,7 @@ def database(monkeypatch):
     migrate.main()
     with engine.begin() as conn:
         conn.execute(text('''TRUNCATE network.members,network.interactions,network.intros,
-            network.intro_runs,network.thread_runs,network.evidence_cache RESTART IDENTITY'''))
+            network.intro_runs,network.thread_runs,network.evidence_cache,network.llm_cache RESTART IDENTITY'''))
     yield engine
     engine.dispose()
 
@@ -174,3 +175,26 @@ def test_recommendations_immediately_exclude_new_like_and_pass(database, monkeyp
     refreshed = client.get(url)
     assert refreshed.status_code == 200
     assert set(targets).isdisjoint(item['member']['id'] for item in refreshed.json()['items'])
+
+
+def test_drafted_cache_survives_demo_reset_and_reuses_without_calls(database, monkeypatch):
+    demo.reset_demo()
+    monkeypatch.setattr(db, 'engine', database)
+    encoder = Embedder('tf-idf')
+    monkeypatch.setattr(intros, 'recommend', lambda *args, **kwargs: recommend(*args, encoder=encoder, **kwargs))
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only')
+    calls = []
+    def generate(*args, **kwargs):
+        calls.append(1)
+        return intros.IntroMessage(message='A genuinely generated mocked intro.')
+    monkeypatch.setattr(llm, 'generate_json', generate)
+    first = intros._run_intros('manual')
+    assert first['run']['n_drafted'] == 10 and len(calls) == 10
+    cached = rows(database, 'SELECT * FROM llm_cache ORDER BY member_id,target_id')
+    assert len(cached) == 10
+    demo.reset_demo()
+    assert rows(database, 'SELECT * FROM llm_cache ORDER BY member_id,target_id') == cached
+    monkeypatch.setattr(llm.settings, 'intro_llm_max_per_run', 0)
+    second = intros._run_intros('manual')
+    assert len(calls) == 10 and second['run']['n_drafted'] == 10
+    assert all(not row['llm_used'] for row in second['intros'])

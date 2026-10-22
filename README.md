@@ -5,9 +5,9 @@
 Most community leads know a member as a phone number. Member Network turns a short opt-in questionnaire into a member graph, then:
 
 1. **Recommends people** with a hybrid recommender — "people who liked who you liked also connected with X" (collaborative filtering) blended with "X builds what you want help with" (sentence embeddings) — and shows *why* for every suggestion.
-2. **Runs a weekly intro bot** (button + scheduler) that picks one intro per member, has Gemini (or optional Grok) write a double-opt-in message *only from the structured reasons*, and logs every outcome (drafted / sent / accepted / declined / failed). Accept/decline feeds back into the model, so it keeps working without the organiser.
+2. **Runs a weekly intro bot** (button + scheduler) that picks one intro per member, has Cursor, Gemini or Grok write a double-opt-in message *only from the structured reasons*, and logs every outcome (drafted / sent / accepted / declined / failed / skipped). Accept/decline feeds back into the model, so it keeps working without the organiser.
 3. **Finds speakers** for a topic: consenting members plus public London builders, each with evidence from GitHub, Devpost, Hacker News and Luma, labelled live vs cached.
-4. **Revives threads**: paste a chat export, rules spot conversations that died on an unanswered question or open offer, Gemini (or optional Grok) drafts the nudge, and the run log shows what it tried and what failed.
+4. **Revives threads**: paste a chat export, rules spot conversations that died on an unanswered question or open offer, the selected LLM drafts the nudge, and the run log shows what it tried and what failed.
 5. **Evaluates itself honestly**: hold-out hit-rate@5 / precision@5 for popularity vs CF vs content vs hybrid, including where the hybrid does not win.
 
 MIT licensed. All seeded members are synthetic and labelled **Demo data** in the UI.
@@ -40,7 +40,7 @@ Like / Pass ───POST /api/interactions──▶ interactions (like|pass|acc
                                    │ structured reasons + evidence
           ┌────────────────────────┼────────────────────────┐
    GET /recommendations    POST /intros/run (+ APScheduler Mon 09:00)   GET /eval
-                              Gemini (default) / Grok (optional) → Pydantic-validated
+                              Cursor / Gemini / Grok → Pydantic-validated
                               message from reasons only → intros table
                               accept/decline → interactions → model changes
 Speakers: topic → embeddings over consenting members + GitHub/Devpost/HN/Luma (httpx, 5s timeouts, evidence_cache)
@@ -53,7 +53,7 @@ Threads:  export text → parser → deterministic revive rules → LLM nudge �
 | Postgres (Supabase-compatible SQL migrations with RLS) | Answers and consent stored once; anon may only insert questionnaire rows |
 | Item-item CF (numpy/scikit-learn) | The "people who liked X also liked Y" signal the idea is built on; explainable via co-likers |
 | sentence-transformers `all-MiniLM-L6-v2` | Cold start: new members have no likes, but their *wants* can match others' *builds* |
-| Gemini / optional Grok via OpenAI-compatible APIs | Writes intros/nudges from structured facts only; never decides who is matched |
+| Cursor headless CLI / Gemini / Grok | Writes intros/nudges from structured facts only; never decides who is matched |
 | APScheduler | Weekly run happens without the organiser |
 | httpx + `evidence_cache` | Live public evidence with caching and per-source failure reporting |
 | React + Vite + Tailwind + Geist | Calm dark UI matching the hackathon site |
@@ -100,7 +100,17 @@ cd frontend && npm run build
 
 ### Environment variables (`backend/.env.example`)
 
-`DATABASE_URL`, `LLM_PROVIDER` (`gemini` default, or `grok`), `GEMINI_API_KEY`, `GEMINI_MODEL` (default `gemini-3.8-flash`), optional `XAI_API_KEY` / `GROK_MODEL`, `GITHUB_TOKEN` (optional, raises GitHub rate limit), `LUMA_EVENT_IDS` (comma-separated Luma event ids used as the host pool), `EMBEDDER` (`tf-idf` forces the offline fallback), `MAX_CF_WEIGHT`, `CF_K0`. Supabase uses `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` and an owner `DATABASE_URL`; all SQL objects live in the dedicated `network` schema. Store credentials only in the ignored `backend/.env`. `DISCORD_BOT_TOKEN` is not used (Discord bot was cut).
+`DATABASE_URL`, `LLM_PROVIDER` (`cursor`, `gemini`, `grok`), `LLM_MODEL`, `CURSOR_API_KEY`, `CURSOR_MODEL` (fallback alias), `INTRO_LLM_MAX_PER_RUN` (10), `GEMINI_API_KEY`, `GEMINI_MODEL`, optional `XAI_API_KEY` / `GROK_MODEL`, `GITHUB_TOKEN` (optional, raises GitHub rate limit), `LUMA_EVENT_IDS` (comma-separated Luma event ids used as the host pool), `EMBEDDER` (`tf-idf` forces the offline fallback), `MAX_CF_WEIGHT`, `CF_K0`. Supabase uses `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` and an owner `DATABASE_URL`; all SQL objects live in the dedicated `network` schema. Store credentials only in the ignored `backend/.env`. `DISCORD_BOT_TOKEN` is not used (Discord bot was cut).
+
+With `LLM_PROVIDER` unset, a configured Cursor key selects Cursor; otherwise Gemini is the
+default. `LLM_MODEL` overrides the real model reported by health. Cursor defaults to
+`gemini-3.7-flash-high`; `cursor-grok-4.5-high-fast` is another option. Install the CLI with
+`curl -fsS https://cursor.com/install | bash`. It runs in a fresh empty temporary directory
+with a 60s timeout, no shell, and no application retries. Cursor skips the startup probe.
+All providers share a hard **40-call cap per backend process**, including thread nudges.
+Intro runs generate text for the top 10 uncached pairs by score; the rest are explicitly
+`skipped: budget cap`. Drafted text is cached by directed pair in `network.llm_cache`, reused
+without another call, and preserved by demo reset. Cache hits do not spend call slots.
 
 ## Live vs seeded vs simulated
 
@@ -109,7 +119,7 @@ cd frontend && npm run build
 | Members, likes in the demo | **Seeded, synthetic** (`is_seed=true`, "Demo data"), generated by a documented random process (cluster affinity + wants/builds complementarity + popularity + noise), fixed RNG |
 | Questionnaire submissions, likes, passes, accept/decline from the UI | **Live**, stored in Postgres |
 | Recommendations, eval | **Live** computation over whatever is in the DB |
-| Intro / nudge text | **Live Gemini** by default (`GEMINI_API_KEY`), optional Grok (`LLM_PROVIDER=grok`, `XAI_API_KEY`); missing selected key leaves null text, provider errors produce sanitized failed drafts (no canned prose) |
+| Intro / nudge text | **Live Cursor** when its key is configured, otherwise Gemini; optional Grok. Missing selected key leaves null text, provider errors produce sanitized failed drafts (no canned prose) |
 | Intro delivery ("sent") | **Simulated** — nothing is sent to any chat app |
 | Speaker evidence | **Live** public API calls (GitHub, Devpost, HN Algolia, Luma event JSON), cached ~6h; each item labelled live/cached with fetch time; source failures shown |
 | Thread reviver sample | **Synthetic** chat log bundled in `backend/app/data/`; you can paste a real export |
@@ -133,7 +143,7 @@ Where it doesn't win: **CF alone is no better than popularity** on this data (�
 - Plan was agreed up front; remaining choices defaulted and listed here.
 - Local `postgres:16` until Supabase credentials exist; same SQL incl. RLS (roles `anon`/`authenticated`/`service_role` created if missing).
 - CF weight grows with the member's own interaction count (`0.7·n/(n+8)`); content gets the rest. Not tuned on eval.
-- Gemini/Grok never chooses matches; deterministic rules and models do, the LLM only phrases them. Output is Pydantic-validated.
+- Cursor/Gemini/Grok never chooses matches; deterministic rules and models do, the LLM only phrases them. Output is Pydantic-validated.
 - Speaker "London builders" come from GitHub `location:London` search, Devpost/HN topic search and Luma hosts of configured events; London residency and availability are **not verified**.
 - Luma has no public search API without a key, so event ids are configured (`LUMA_EVENT_IDS`).
 - Intros count as "sent" only as a simulation label; no Discord/WhatsApp delivery (Discord bot cut for time).
@@ -159,7 +169,7 @@ For the 3-minute live version see [DEMO.md](DEMO.md).
 1. **(15s) Problem.** "Leads know members as phone numbers. Nobody gets introduced." Open `/members`: 80 demo members, the graph, 2 isolated members.
 2. **(25s) Opt in.** `/join`: fill name, builds "voice agents", wants "help with payments", tick both consents → Join. You're now "Viewing as" the new member.
 3. **(25s) For you.** Cold start: CF weight 0, suggestions come from content ("X builds payments infra; you want help with payments"). Like two people → header shows interactions grow, CF weight rises, reasons now include "You liked A and B; N people who liked them also connected with C".
-4. **(25s) Weekly intros.** `/intros` → Run weekly intros now. One intro per consenting member, with reasons; Gemini/optional Grok text (or the explicit LLM-unavailable badge). Accept one → "model updated from N interactions"; failures listed, not hidden.
+4. **(25s) Weekly intros.** `/intros` → Run weekly intros now. Ranked pairs with reasons; up to 10 new drafts plus cached text, explicit budget skips and failures. Accept one → "model updated from N interactions".
 5. **(20s) Speakers.** `/speakers` → "voice agents": consenting members first, then public London builders, each with GitHub repos/stars, Devpost wins, HN posts, Luma events, labelled live/cached.
 6. **(10s) Threads.** `/threads` → Load sample → Analyse: dead threads with an unanswered question, drafted nudge, run log.
 7. **(10s) Honesty.** `/eval`: hit-rate@5 for popularity/CF/content/hybrid, including where the hybrid doesn't win.
