@@ -10,6 +10,8 @@ from app.routes import api
 from app.seed import synthetic_data
 from app.services import demo
 from app.services import intros, llm
+from app import import_luma
+from app.services import member_identity
 from app.services.recommender import Embedder, recommend
 
 
@@ -24,10 +26,15 @@ def database(monkeypatch):
     event.listen(engine, 'connect', db.set_network_search_path)
     monkeypatch.setattr(migrate, 'engine', engine)
     monkeypatch.setattr(demo, 'engine', engine)
+    monkeypatch.setattr(db, 'engine', engine)
+    monkeypatch.setattr(intros, 'engine', engine)
+    monkeypatch.setattr(import_luma, 'engine', engine)
+    monkeypatch.setattr(member_identity, 'engine', engine)
     migrate.main()
     with engine.begin() as conn:
         conn.execute(text('''TRUNCATE network.members,network.interactions,network.intros,
-            network.intro_runs,network.thread_runs,network.evidence_cache,network.llm_cache RESTART IDENTITY'''))
+            network.intro_runs,network.thread_runs,network.evidence_cache,network.llm_cache,
+            network.events,network.attendance RESTART IDENTITY'''))
     yield engine
     engine.dispose()
 

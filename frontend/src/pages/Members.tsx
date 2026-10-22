@@ -56,7 +56,7 @@ export default function Members() {
       {graph.data && (
         <div className="mb-6">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <Label>Member graph · likes &amp; accepted intros</Label>
+            <Label>Member graph · likes &amp; accepted intros · muted nodes: not opted in</Label>
             <span className="label">density {graph.data.metrics.density.toFixed(3)} · <span className="text-warn/80">●</span> isolated · <span className="text-ok/80">—</span> accepted intro</span>
           </div>
           <GraphView graph={graph.data} onSelect={(id) => { setMemberId(id); nav('/for-you') }} />
@@ -78,7 +78,7 @@ export default function Members() {
                 <tr key={m.id} className="border-b border-line/60 align-top transition-colors duration-150 last:border-0 hover:bg-hover">
                   <td className="px-4 py-3">
                     <div className="font-medium">{m.name}</div>
-                    <div className="mt-1 flex flex-wrap gap-1"><SeedTag seed={m.is_seed} />{m.isolated && <Badge tone="warn">Isolated</Badge>}</div>
+                    <div className="mt-1 flex flex-wrap gap-1"><SeedTag seed={m.is_seed} />{m.opted_in === false ? <Badge>Not opted in · Luma</Badge> : m.isolated && <Badge tone="warn">Isolated</Badge>}</div>
                   </td>
                   <td className="max-w-[240px] px-4 py-3 text-fg/85">{m.builds}</td>
                   <td className="max-w-[240px] px-4 py-3 text-fg/85">{m.wants}</td>
@@ -88,7 +88,7 @@ export default function Members() {
                     <Badge tone={m.consent_intros ? 'ok' : 'neutral'}>Intros {m.consent_intros ? 'yes' : 'no'}</Badge>
                     <Badge tone={m.consent_speaker ? 'ok' : 'neutral'}>Speaker {m.consent_speaker ? 'yes' : 'no'}</Badge>
                   </div></td>
-                  <td className="px-4 py-3"><button className="btn whitespace-nowrap py-1 text-xs" onClick={() => { setMemberId(m.id); nav('/for-you') }}>View as</button></td>
+                  <td className="px-4 py-3"><button disabled={m.opted_in === false} className="btn whitespace-nowrap py-1 text-xs disabled:opacity-30" onClick={() => { setMemberId(m.id); nav('/for-you') }}>View as</button></td>
                 </tr>
               ))}
             </tbody>

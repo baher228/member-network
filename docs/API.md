@@ -5,7 +5,8 @@ Base: `http://localhost:8000/api`. All JSON. Pydantic v2 models mirror these sha
 ## Types
 Member = { id:int, name:str, handle:str|null, github:str|null, devpost:str|null,
   builds:str, wants:str, speaker_topics:str, consent_intros:bool, consent_speaker:bool,
-  is_seed:bool, created_at:iso }
+  is_seed:bool, created_at:iso, source:"questionnaire"|"luma", opted_in:bool,
+  luma_profile_url:str|null, linkedin_url:str|null }
 Reason = { kind:"cf"|"content"|"popularity", text:str, weight:float, evidence:object }
   cf evidence: { liked:[{id,name}], co_likers:int }   content evidence: { your_want:str, their_build:str, similarity:float }
 Recommendation = { member:Member, score:float, cf_score:float, content_score:float, reasons:[Reason] }
@@ -28,6 +29,8 @@ POST /demo/reset -> { seed_members_restored:int, seed_members_created:int,
        seed_interactions_restored:int, interactions_deleted:int, interactions_created:int,
        intros_deleted:int, intro_runs_deleted:int }
 GET  /members -> [ Member & { likes_given:int, likes_received:int, connections:int, isolated:bool } ]
+POST /import/luma (multipart field `file`) -> { rows:int, members_created:int, members_matched:int,
+       events_created:int, attendance_created:int }
 GET  /members/{id} -> Member
 GET  /members/{id}/recommendations?k=10 -> { member_id, model:{ n_interactions:int, member_interactions:int,
        cf_weight:float, content_weight:float, embedder:str }, items:[Recommendation] }

@@ -48,14 +48,15 @@ export default function GraphView({ graph, onSelect }: { graph: GraphResponse; o
         warmupTicks={40}
         nodeRelSize={3}
         nodeVal={(n) => 1 + Math.sqrt((n as { degree: number }).degree)}
-        nodeColor={(n) => ((n as { isolated: boolean }).isolated ? '#fbbf24' : '#ededed')}
+        nodeColor={(n) => ((n as { opted_in?: boolean }).opted_in === false ? '#606060' : (n as { isolated: boolean }).isolated ? '#fbbf24' : '#ededed')}
         nodeLabel={(n) => {
-          const m = n as { name: string; degree: number; isolated: boolean }
-          return `<div style="background:#0a0a0a;border:1px solid #292929;border-radius:8px;padding:4px 8px;font:12px Geist Sans,sans-serif;color:#ededed">${esc(m.name)}<span style="color:#8c8c8c;font-family:Geist Mono,monospace"> · ${m.isolated ? 'isolated' : `degree ${m.degree}`}</span></div>`
+          const m = n as { name: string; degree: number; isolated: boolean; opted_in?: boolean; events?: { event_name: string }[] }
+          const attendance = (m.events ?? []).map((event) => `<div style="color:#8c8c8c">Met at ${esc(event.event_name)}</div>`).join('')
+          return `<div style="background:#0a0a0a;border:1px solid #292929;border-radius:8px;padding:4px 8px;font:12px Geist Sans,sans-serif;color:#ededed">${esc(m.name)}<span style="color:#8c8c8c;font-family:Geist Mono,monospace"> · ${m.opted_in === false ? 'not opted in' : m.isolated ? 'isolated' : `degree ${m.degree}`}</span>${attendance}</div>`
         }}
         linkColor={(l) => ((l as { kind: string }).kind === 'accept' ? 'rgba(74,222,128,.45)' : 'rgba(255,255,255,.12)')}
         linkWidth={(l) => ((l as { kind: string }).kind === 'accept' ? 1.2 : 0.5)}
-        onNodeClick={(n) => onSelect?.((n as { id: number }).id)}
+        onNodeClick={(n) => { if ((n as { opted_in?: boolean }).opted_in !== false) onSelect?.((n as { id: number }).id) }}
       />
     </div>
   )

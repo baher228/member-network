@@ -164,6 +164,7 @@ def test_persistence_records_result_id_and_log(monkeypatch, statuses, key, expec
 
 
 def test_routes_no_db(monkeypatch):
+    monkeypatch.setattr('app.routes.threads.rows', lambda *args: [])
     monkeypatch.setattr(threads.settings, 'llm_provider', 'gemini')
     monkeypatch.setattr(threads.settings, 'gemini_api_key', '')
     monkeypatch.setattr(threads, 'persist_analysis', lambda result: result.model_copy(update={'run_id': 42}))

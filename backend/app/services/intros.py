@@ -63,7 +63,7 @@ def _run_intros(trigger):
     plans = []
     try:
         for member in members:
-            if not member['consent_intros']:
+            if not member['consent_intros'] or not member.get('opted_in', True):
                 skipped += 1
                 continue
             items = recommend(member['id'], members, interactions, previous, k=1)['items']

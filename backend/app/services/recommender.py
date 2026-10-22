@@ -76,8 +76,9 @@ def hybrid_weight(n, max_cf=None, k0=None):
 def cf_matrix(members, interactions):
     ids = {m['id']: i for i, m in enumerate(members)}
     matrix = np.zeros((len(members), len(members)))
+    opted_in = {m['id'] for m in members if m.get('opted_in', True)}
     for row in interactions:
-        if row['kind'] in ('like', 'accept') and row['member_id'] in ids and row['target_id'] in ids:
+        if row['kind'] in ('like', 'accept') and row['member_id'] in opted_in and row['target_id'] in opted_in:
             matrix[ids[row['member_id']], ids[row['target_id']]] += 2 if row['kind'] == 'accept' else 1
     norms = np.linalg.norm(matrix, axis=0)
     denominator = np.outer(norms, norms)
@@ -101,10 +102,10 @@ def recommend(member_id, members, interactions, existing_intros=(), k=10, encode
             excluded.add(intro['target_id'])
         if intro['target_id'] == member_id:
             excluded.add(intro['member_id'])
-    candidates = [m for m in members if m['id'] not in excluded and m['consent_intros']]
+    candidates = [m for m in members if m['id'] not in excluded and m['consent_intros'] and m.get('opted_in', True)]
     weight = hybrid_weight(len(history))
     info = dict(n_interactions=len(interactions), member_interactions=len(history), cf_weight=weight, content_weight=1-weight, embedder=encoder.name)
-    if not candidates or not user['consent_intros']:
+    if not candidates or not user['consent_intros'] or not user.get('opted_in', True):
         return dict(member_id=member_id, model=info, items=[])
     liked = np.flatnonzero(matrix[u] > 0)
     raw_cf = matrix[u] @ sims

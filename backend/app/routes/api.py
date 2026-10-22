@@ -1,6 +1,6 @@
 from collections import Counter
 import asyncio
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from sqlalchemy.exc import IntegrityError
 from app import models as m
 from app.db import rows, execute, snapshot
@@ -11,6 +11,8 @@ from app.services.speakers import find_speakers
 from app.services.graph import graph
 from app.eval import get_evaluation
 from app.services.demo import reset_demo
+from app.services.member_identity import submit_questionnaire
+from app.import_luma import import_csv, MAX_BYTES
 
 router = APIRouter(prefix='/api')
 scheduler = None
@@ -35,8 +37,23 @@ def demo_reset():
 
 @router.post('/members', response_model=m.Member)
 def create_member(body: m.MemberInput):
-    fields = body.model_dump()
-    return execute(f'INSERT INTO members ({",".join(fields)}) VALUES ({",".join(":"+k for k in fields)}) RETURNING *', fields)[0]
+    try:
+        return submit_questionnaire(body)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    except IntegrityError:
+        raise HTTPException(409, 'Member identity conflicts with an existing profile')
+
+
+@router.post('/import/luma', response_model=m.LumaImportResult)
+async def luma_import(file: UploadFile = File(...)):
+    try:
+        content = await file.read(MAX_BYTES + 1)
+        return await asyncio.to_thread(import_csv, content)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    finally:
+        await file.close()
 
 
 @router.get('/members', response_model=list[m.MemberStats])
@@ -77,6 +94,9 @@ def recommendations(member_id: int, k: int = Query(10, ge=1, le=100)):
 def interaction(body: m.InteractionInput):
     if body.member_id == body.target_id:
         raise HTTPException(422, 'Self interactions are not allowed')
+    identities = rows('SELECT id,opted_in FROM members WHERE id IN (:a,:b)', {'a': body.member_id, 'b': body.target_id})
+    if any(not member['opted_in'] for member in identities):
+        raise HTTPException(403, 'Interactions require opted-in members')
     try:
         execute('INSERT INTO interactions(member_id,target_id,kind) VALUES (:member_id,:target_id,:kind)', body.model_dump())
     except IntegrityError:
@@ -114,7 +134,7 @@ def intro_respond(intro_id: int, body: m.RespondInput):
 
 @router.get('/speakers', response_model=m.SpeakersResult)
 async def speakers(topic: str = Query(min_length=1, max_length=200), include_external: bool = True):
-    data = await asyncio.to_thread(rows, 'SELECT * FROM members WHERE consent_speaker=true')
+    data = await asyncio.to_thread(rows, 'SELECT * FROM members')
     return await find_speakers(topic, data, include_external)
 
 
@@ -130,4 +150,6 @@ def evaluation_run():
 
 @router.get('/graph', response_model=m.GraphResult)
 def network_graph():
-    return graph(*snapshot())
+    attendance = rows('''SELECT a.member_id,e.event_name,e.event_url,e.event_date
+        FROM attendance a JOIN events e ON e.id=a.event_id ORDER BY e.event_date,e.id''')
+    return graph(*snapshot(), attendance=attendance)

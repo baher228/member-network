@@ -55,7 +55,7 @@ def test_migration_bootstrap_and_bookkeeping_stay_in_network(monkeypatch, alread
     assert statements.index('CREATE SCHEMA IF NOT EXISTS network') < next(i for i, sql in enumerate(statements) if sql.startswith('CREATE TABLE'))
     assert all('network.schema_migrations' in sql for sql in statements if 'schema_migrations' in sql)
     assert 'REVOKE ALL ON network.schema_migrations FROM anon, authenticated' in statements
-    assert len(scripts) == (0 if already_applied else 3)
+    assert len(scripts) == (0 if already_applied else 4)
     if scripts:
         assert scripts[0].startswith('CREATE SCHEMA IF NOT EXISTS network;')
         assert all('SCHEMA public' not in script and 'public.' not in script for script in scripts)

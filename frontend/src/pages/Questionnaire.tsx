@@ -6,6 +6,7 @@ import { Card, ErrorBox, Label, PageHeader } from '../components/ui'
 
 const empty = {
   name: '', handle: '', github: '', devpost: '', builds: '', wants: '', speaker_topics: '',
+  luma_profile_url: '', email: '', linkedin_url: '',
   consent_intros: true, consent_speaker: false,
 }
 
@@ -37,6 +38,7 @@ export default function Questionnaire() {
       const m = await api.createMember({
         ...f, name: f.name.trim(), builds: f.builds.trim(), wants: f.wants.trim(), speaker_topics: f.speaker_topics.trim(),
         handle: blank(f.handle), github: blank(f.github.replace(/^@/, '')), devpost: blank(f.devpost.replace(/^@/, '')),
+        luma_profile_url: blank(f.luma_profile_url), email: blank(f.email), linkedin_url: blank(f.linkedin_url),
       })
       setSaved(m)
       setMemberId(m.id)
@@ -67,6 +69,9 @@ export default function Questionnaire() {
             <Field label="Devpost username"><input className="input font-mono" value={f.devpost} onChange={set('devpost')} placeholder="ada" /></Field>
           </div>
           <Field label="What do you build?"><textarea required rows={3} className="input" value={f.builds} onChange={set('builds')} placeholder="Voice agents for customer support, built on Whisper + an LLM" /></Field>
+          <Field label="Luma profile URL (optional)" hint="Attach your answers to an imported attendance record."><input type="url" className="input" value={f.luma_profile_url} onChange={set('luma_profile_url')} /></Field>
+          <Field label="Email (optional)" hint="Used only for matching an existing name-and-email record; not shown in member responses."><input type="email" className="input" value={f.email} onChange={set('email')} /></Field>
+          <Field label="LinkedIn URL / headline (you type it)" hint="Optional. We never scrape LinkedIn."><input className="input" value={f.linkedin_url} onChange={set('linkedin_url')} placeholder="https://www.linkedin.com/in/… or your headline" /></Field>
           <Field label="What do you want help with / who do you want to meet?"><textarea required rows={3} className="input" value={f.wants} onChange={set('wants')} placeholder="Someone who knows payments infra; a designer for onboarding" /></Field>
           <Field label="Topics you could speak on" hint="Comma-separated. Leave blank if none."><input className="input" value={f.speaker_topics} onChange={set('speaker_topics')} placeholder="speech recognition, evals" /></Field>
           <div className="space-y-2 rounded-lg border border-line p-4">

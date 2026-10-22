@@ -101,6 +101,7 @@ cd frontend && npm run build
 ### Environment variables (`backend/.env.example`)
 
 `DATABASE_URL`, `LLM_PROVIDER` (`cursor`, `gemini`, `grok`), `LLM_MODEL`, `CURSOR_API_KEY`, `CURSOR_MODEL` (fallback alias), `INTRO_LLM_MAX_PER_RUN` (10), `GEMINI_API_KEY`, `GEMINI_MODEL`, optional `XAI_API_KEY` / `GROK_MODEL`, `GITHUB_TOKEN` (optional, raises GitHub rate limit), `LUMA_EVENT_IDS` (comma-separated Luma event ids used as the host pool), `EMBEDDER` (`tf-idf` forces the offline fallback), `MAX_CF_WEIGHT`, `CF_K0`. Supabase uses `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` and an owner `DATABASE_URL`; all SQL objects live in the dedicated `network` schema. Store credentials only in the ignored `backend/.env`. `DISCORD_BOT_TOKEN` is not used (Discord bot was cut).
+`POST /api/import/luma` and `python -m app.import_luma path.csv` accept the exact documented Luma CSV columns. They create opted-out member records and separate event attendance context (never likes); questionnaire claims can opt a record in. Real files belong under ignored `data/private/`; no real data is committed. Imported people are not recommendation, intro, speaker or thread-revival candidates until they opt in.
 
 With `LLM_PROVIDER` unset, a configured Cursor key selects Cursor; otherwise Gemini is the
 default. `LLM_MODEL` overrides the real model reported by health. Cursor defaults to

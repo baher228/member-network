@@ -4,10 +4,14 @@ import httpx
 from app.services.recommender import embedder
 from app.services import evidence as ev
 from app.config import settings
+from app.services.member_identity import normal_name
 
 
 async def find_speakers(topic, members, include_external=True):
-    consenting = [m for m in members if m['consent_speaker']]
+    consenting = [m for m in members if m['consent_speaker'] and m.get('opted_in', True)]
+    blocked = [m for m in members if not m.get('opted_in', True)]
+    blocked_names = {normal_name(m['name']) for m in blocked}
+    blocked_handles = {ev.handle(m.get(field)) for m in blocked for field in ('github', 'devpost') if m.get(field)}
     candidates = [dict(kind='member', member_id=m['id'], name=m['name'], handle=m['handle'],
                        evidence=[ev.evidence('questionnaire', m['speaker_topics'], None, m['builds'], False, m.get('created_at'))]) for m in consenting]
     statuses = {source: [] for source in ('github', 'devpost', 'hn', 'luma')}
@@ -40,6 +44,9 @@ async def find_speakers(topic, members, include_external=True):
                 if source != 'luma' or settings.luma_event_ids.strip():
                     jobs.append(external(source, fn, client))
         await asyncio.gather(*jobs)
+    candidates = [candidate for candidate in candidates if candidate['kind'] == 'member' or
+                  (normal_name(candidate['name']) not in blocked_names and
+                   ev.handle(candidate.get('handle')) not in blocked_handles)]
     texts = [topic] + [' '.join((e['title']+' '+(e['detail'] or '')) for e in candidate['evidence']) for candidate in candidates]
     vectors = await asyncio.to_thread(embedder.encode, texts)
     for i, candidate in enumerate(candidates):

@@ -72,6 +72,17 @@ cache entries. Existing successful intro text is backfilled by migration 003.
 
 `EMBEDDER=tf-idf` forces the fast offline fallback. Default uses CPU `all-MiniLM-L6-v2` and caches embeddings by member/text hash; model-load failures are logged and the API reports `tf-idf` honestly. Initial model loading may download Hugging Face weights. Optional `MAX_CF_WEIGHT` (default .7) and `CF_K0` (default 8) control blending.
 
+### Private Luma imports
+
+`POST /api/import/luma` accepts only the exact CSV headers
+`name,luma_profile_url,x_url,instagram_url,linkedin_url,github_url,website_url,event_name,event_url,event_date`.
+The equivalent CLI is `python -m app.import_luma path.csv`. Imports are transactional, upsert by
+normalized Luma URL (then normalized name), and create `events` plus separate `attendance` rows in
+`network`; attendance never becomes an interaction or recommender signal. Imported records have
+`source=luma`, `opted_in=false`, and both consents false until claimed through the questionnaire.
+No external enrichment is performed for them. Keep real files under ignored `data/private/`; never
+commit them. The optional LinkedIn URL/headline field is self-entered only; no LinkedIn scraping exists.
+
 `GITHUB_TOKEN` is optional. `LUMA_EVENT_IDS` is a comma-separated allowlist (default `evt-Yz7RR89Zlv56tya`); an empty value skips Luma. External calls use five-second timeouts and parallel source tasks. Evidence responses carry live/cache timestamps and source errors. Devpost sometimes returns HTML rather than JSON; that is reported as a source failure, never fabricated evidence. HN authors and Devpost team members are candidates backed by topic+London search results, **not independently verified London residency or speaking availability**. Devpost results lacking person identities do not create fictional speakers.
 
 Weekly scheduler: Monday 09:00 Europe/London; next occurrence is in `/api/health`. Runs share the same service as the manual endpoint, guarded by an advisory lock. Run a single uvicorn worker for exactly one scheduler. Intro responses are transactional and repeated identical responses do not duplicate interactions.

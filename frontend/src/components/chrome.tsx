@@ -8,8 +8,9 @@ export function MemberPicker() {
   const [members, setMembers] = useState<MemberStats[]>([])
   useEffect(() => {
     api.members().then((m) => {
-      setMembers(m)
-      if (memberId == null && m.length) setMemberId(m[0].id)
+      const eligible = m.filter((member) => member.opted_in !== false)
+      setMembers(eligible)
+      if ((memberId == null || !eligible.some((member) => member.id === memberId)) && eligible.length) setMemberId(eligible[0].id)
     }).catch(() => setMembers([]))
   }, [memberId, setMemberId])
   return (

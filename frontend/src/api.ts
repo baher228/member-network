@@ -2,6 +2,7 @@ export type Member = {
   id: number; name: string; handle: string | null; github: string | null; devpost: string | null
   builds: string; wants: string; speaker_topics: string; consent_intros: boolean; consent_speaker: boolean
   is_seed: boolean; created_at: string
+  source?: 'questionnaire' | 'luma'; opted_in?: boolean; luma_profile_url?: string | null; linkedin_url?: string | null
 }
 export type MemberStats = Member & { likes_given: number; likes_received: number; connections: number; isolated: boolean }
 export type Reason = { kind: 'cf' | 'content' | 'popularity'; text: string; weight: number; evidence: Record<string, unknown> }
@@ -38,7 +39,7 @@ export type Health = {
   n_members: number; n_interactions: number; scheduler_next_run?: string | null
 }
 export type GraphResponse = {
-  nodes: { id: number; name: string; degree: number; isolated: boolean; is_seed: boolean }[]
+  nodes: { id: number; name: string; degree: number; isolated: boolean; is_seed: boolean; opted_in?: boolean; events?: { event_name: string; event_url: string; event_date: string }[] }[]
   edges: { source: number; target: number; kind: string }[]
   metrics: { density: number; n_isolated: number; avg_degree: number }
 }
@@ -76,7 +77,7 @@ export const api = {
   health: () => req<Health>('/health'),
   members: () => req<MemberStats[]>('/members'),
   member: (id: number) => req<Member>(`/members/${id}`),
-  createMember: (m: Omit<Member, 'id' | 'is_seed' | 'created_at'>) => post<Member>('/members', m),
+  createMember: (m: Omit<Member, 'id' | 'is_seed' | 'created_at' | 'source' | 'opted_in'> & { email?: string | null }) => post<Member>('/members', m),
   recommendations: (id: number, k = 10) => req<RecResponse>(`/members/${id}/recommendations?k=${k}`),
   interact: (member_id: number, target_id: number, kind: 'like' | 'pass') =>
     post<{ ok: boolean; n_interactions: number }>('/interactions', { member_id, target_id, kind }),

@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from app import models as m
 from app.services import threads
+from app.db import rows
 
 router = APIRouter(prefix='/api/threads', tags=['threads'])
 
@@ -12,7 +13,8 @@ def sample():
 
 @router.post('/analyze', response_model=m.ThreadAnalysis)
 def analyze(body: m.ThreadAnalyzeInput):
-    result = threads.analyze_chat(body.log_text, now=body.now)
+    excluded = [member['name'] for member in rows('SELECT name FROM members WHERE opted_in=false')]
+    result = threads.analyze_chat(body.log_text, now=body.now, excluded_names=excluded)
     return threads.persist_analysis(result)
 
 

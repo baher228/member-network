@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Any
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -14,6 +14,9 @@ class MemberInput(BaseModel):
     speaker_topics: str = Field(max_length=10000)
     consent_intros: bool
     consent_speaker: bool
+    luma_profile_url: str | None = Field(default=None, max_length=2000)
+    email: str | None = Field(default=None, max_length=320, exclude=True, pattern=r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    linkedin_url: str | None = Field(default=None, max_length=2000)
 
 
 class Member(MemberInput):
@@ -21,6 +24,11 @@ class Member(MemberInput):
     id: int
     is_seed: bool
     created_at: datetime
+    source: Literal['questionnaire', 'luma'] = 'questionnaire'
+    opted_in: bool = True
+    x_url: str | None = None
+    instagram_url: str | None = None
+    website_url: str | None = None
 
 
 class MemberStats(Member):
@@ -208,6 +216,22 @@ class GraphNode(BaseModel):
     degree: int
     isolated: bool
     is_seed: bool
+    opted_in: bool = True
+    events: list['AttendanceContext'] = Field(default_factory=list)
+
+
+class AttendanceContext(BaseModel):
+    event_name: str
+    event_url: str
+    event_date: date
+
+
+class LumaImportResult(BaseModel):
+    rows: int
+    members_created: int
+    members_matched: int
+    events_created: int
+    attendance_created: int
 
 
 class GraphEdge(BaseModel):

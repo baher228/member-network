@@ -19,6 +19,7 @@ from app.config import settings
 from app.db import engine, rows
 from app.models import ThreadAnalysis, ThreadResult, ThreadLogEntry
 from app.services import llm
+from app.services.member_identity import normal_name
 
 DISCORD = re.compile(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*\|\s*(#[^|]+?)\s*\|\s*([^:]+):\s*(.+)$')
 WHATSAPP = re.compile(r'^\[(\d{2}/\d{2}/\d{4}, \d{2}:\d{2})\]\s*([^:]+):\s*(.+)$')
@@ -151,14 +152,18 @@ def draft_nudge(thread, last_message, api_key=None, client=None, circuit=None):
     return thread
 
 
-def analyze_chat(log_text, now=None, api_key=None, client=None):
+def analyze_chat(log_text, now=None, api_key=None, client=None, excluded_names=()):
     now = utc(now or datetime.now(timezone.utc))
     messages, skipped, log = parse_chat(log_text)
     groups = group_threads(messages)
     log.append(ThreadLogEntry(step='group', ok=True, detail=f'Grouped {len(groups)} threads; WhatsApp split threshold is >36 hours. Analysis now={now.isoformat()}.'))
     threads = []
+    excluded = {normal_name(name) for name in excluded_names}
     circuit = llm.RunCircuitBreaker()
     for thread_id, chat in groups.items():
+        if any(normal_name(message.author) in excluded for message in chat):
+            log.append(ThreadLogEntry(step='privacy', ok=True, detail='Skipped thread with a known non-opted-in participant.'))
+            continue
         thread = decide_thread(thread_id, chat, now)
         log.append(ThreadLogEntry(step=f'rules.{thread_id}', ok=True, detail=f'worth_reviving={thread.worth_reviving}; score={thread.score}; ' + ' '.join(thread.reasons)))
         if thread.worth_reviving:
