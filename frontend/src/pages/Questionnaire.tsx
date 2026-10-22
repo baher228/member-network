@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, type Member } from '../api'
 import { useSession } from '../session'
 import { Card, ErrorBox, Label, PageHeader } from '../components/ui'
@@ -21,7 +21,15 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export default function Questionnaire() {
-  const [f, setF] = useState(empty)
+  const [params] = useSearchParams()
+  const fromGatekeeper = params.get('from') === 'gatekeeper'
+  const [f, setF] = useState(() => ({
+    ...empty,
+    name: (params.get('name') ?? '').slice(0, 200),
+    github: (params.get('github') ?? '').replace(/^@/, '').slice(0, 100),
+    builds: (params.get('builds') ?? '').slice(0, 2000),
+    ...(fromGatekeeper ? { consent_intros: false, consent_speaker: false } : {}),
+  }))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<Member | null>(null)
@@ -53,6 +61,7 @@ export default function Questionnaire() {
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader eyebrow="Opt-in · 2 minutes" title="Tell the community what you build" />
+      {fromGatekeeper && <p className="label mb-4 text-fg/80">Pre-filled from your Gatekeeper application — check and edit.</p>}
       {saved && (
         <div className="fade-in mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ok/25 bg-ok/[0.05] px-4 py-3 text-sm">
           <span>Thanks {saved.name} — you're in. Your answers are stored with your consent choices.</span>
