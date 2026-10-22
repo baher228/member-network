@@ -108,7 +108,9 @@ def test_llm_failure():
 
 def test_eval_four_models():
     result = evaluate(*synthetic_data(), encoder=Embedder('tf-idf'))
-    assert {r['model'] for r in result['results']} == {'popularity', 'cf', 'content', 'hybrid'}
+    assert {r['model'] for r in result['results'] if r['slice'] == 'all'} == {'popularity', 'cf', 'content', 'hybrid'}
+    assert len(result['results']) == 8
+    assert all(r['hit_rate_std'] >= 0 and r['precision_std'] >= 0 for r in result['results'])
     assert result['n_test_users'] > 0 and result['n_holdout'] > 0
     assert all(0 <= r['hit_rate'] <= 1 and 0 <= r['precision'] <= 1 for r in result['results'])
     EvalResult.model_validate(result)

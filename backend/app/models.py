@@ -150,9 +150,12 @@ class SpeakersResult(BaseModel):
 
 
 class EvalMetric(BaseModel):
-    model: Literal['popularity', 'cf', 'content', 'hybrid']
+    model: str
     hit_rate: float
     precision: float
+    hit_rate_std: float | None = None
+    precision_std: float | None = None
+    slice: Literal['all', 'cold-start'] | None = None
 
 
 class EvalResult(BaseModel):

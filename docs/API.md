@@ -34,6 +34,18 @@ POST /intros/{id}/respond { response:"accepted"|"declined" } -> { intro:Intro, n
 GET  /speakers?topic=...&include_external=true -> { topic, items:[SpeakerCandidate],
        sources:[{ source, status:"live"|"cached"|"failed"|"skipped", error:str|null }] }
 GET  /eval -> { computed_at, holdout_fraction:0.2, k:5, n_test_users:int, n_holdout:int,
-       results:[{ model:"popularity"|"cf"|"content"|"hybrid", hit_rate:float, precision:float }], notes:[str] }
+       results:[{ model:str, hit_rate:float, precision:float, hit_rate_std?:float|null,
+                  precision_std?:float|null, slice?:"all"|"cold-start"|null }], notes:[str] }
 POST /eval/run -> same as GET /eval (recompute)
 GET  /graph -> { nodes:[{id,name,degree,isolated,is_seed}], edges:[{source,target,kind}], metrics:{density:float, n_isolated:int, avg_degree:float} }
+
+### Evaluation methodology and cache
+`GET /eval` computes on first request and caches the last successful result in memory until
+`POST /eval/run` recomputes or the backend restarts. Member/interaction changes do not invalidate it.
+`computed_at` identifies the cached computation. Means and population standard deviations are
+computed across five fixed holdout seeds (0..4), not across users. These are not confidence intervals.
+The original model names remain for slice `all`; extra rows use names such as `cf · cold-start`.
+Both slices use the same evaluated users and held-out targets. The cold-start slice caps each
+evaluated user's training likes at two simultaneously (other users/non-like interactions remain).
+Discarded training likes are not held-out labels. `n_test_users` and `n_holdout` describe one split;
+their counts are constant across splits. No hyperparameters are tuned to these metrics.

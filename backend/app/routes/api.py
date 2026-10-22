@@ -8,7 +8,7 @@ from app.services.recommender import recommend
 from app.services.intros import run_intros, list_intros, respond, llm_health
 from app.services.speakers import find_speakers
 from app.services.graph import graph
-from app.eval import evaluate
+from app.eval import get_evaluation
 
 router = APIRouter(prefix='/api')
 scheduler = None
@@ -113,12 +113,12 @@ async def speakers(topic: str = Query(min_length=1, max_length=200), include_ext
 
 @router.get('/eval', response_model=m.EvalResult)
 def evaluation():
-    return evaluate(*snapshot())
+    return get_evaluation()
 
 
 @router.post('/eval/run', response_model=m.EvalResult)
 def evaluation_run():
-    return evaluate(*snapshot())
+    return get_evaluation(refresh=True)
 
 
 @router.get('/graph', response_model=m.GraphResult)
