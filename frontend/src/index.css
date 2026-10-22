@@ -19,3 +19,5 @@ body { font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif; -webkit-
   .fade-in { animation: fadein 180ms ease-out; }
 }
 @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

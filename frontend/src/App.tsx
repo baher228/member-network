@@ -29,7 +29,7 @@ export default function App() {
                 <span className="text-sm font-medium tracking-tight">Member Network</span>
                 <span className="label hidden sm:inline">· Know your members</span>
               </div>
-              <nav className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
+              <nav className="no-scrollbar order-3 -mx-1 flex w-full gap-1 overflow-x-auto sm:order-none sm:w-auto">
                 {nav.map(([to, label]) => (
                   <NavLink
                     key={to}
