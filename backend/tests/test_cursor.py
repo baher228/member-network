@@ -1,5 +1,8 @@
 import json
 import subprocess
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -102,6 +105,15 @@ def test_shared_process_cap_and_cursor_probe_skipped(monkeypatch):
     assert run.call_count == 40
 
 
+def test_process_cap_is_thread_safe(monkeypatch):
+    run, _ = cursor(monkeypatch)
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        results = list(pool.map(lambda _: intros.draft_intro({'reasons': []}), range(80)))
+    assert run.call_count == 40 and llm._calls_used == 40
+    assert sum(result['llm_used'] for result in results) == 40
+    assert sum(result['error'] == 'call budget exhausted' for result in results) == 40
+
+
 @pytest.mark.parametrize('cap', [0, 1, 2])
 def test_intro_budget_uses_highest_scores_and_reuses_cached_pairs(monkeypatch, cap):
     monkeypatch.setattr(llm.settings, 'intro_llm_max_per_run', cap)
@@ -128,3 +140,55 @@ def test_intro_budget_uses_highest_scores_and_reuses_cached_pairs(monkeypatch, c
     assert len(skipped) == 3 - cap and all(row['error'] == 'skipped: budget cap' and row['message'] is None for row in skipped)
     run = next(params for sql, params in writes if sql.startswith('UPDATE intro_runs'))
     assert run['drafted'] == cap + 1 and run['skipped'] == 3 - cap and run['failed'] == 0
+
+
+def test_intro_llm_drafting_uses_five_workers(monkeypatch):
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only')
+    members = [dict(id=i, consent_intros=True) for i in range(1, 11)]
+    monkeypatch.setattr(intros, 'snapshot', lambda: (members, []))
+    monkeypatch.setattr(intros, 'rows', lambda sql, *args: [] if 'FROM llm_cache' in sql or 'SELECT member_id' in sql else [{'id': 1}])
+    monkeypatch.setattr(intros, 'recommend', lambda member_id, *args, **kwargs: {'items': [
+        dict(member={'id': member_id + 100}, score=member_id, reasons=[])]})
+    monkeypatch.setattr(intros, 'list_intros', lambda *args: [])
+    active = 0
+    maximum = 0
+    lock = threading.Lock()
+    barrier = threading.Barrier(5)
+    def generate(*args, **kwargs):
+        nonlocal active, maximum
+        with lock:
+            active += 1
+            maximum = max(maximum, active)
+        barrier.wait(timeout=2)
+        time.sleep(.02)
+        with lock:
+            active -= 1
+        return intros.IntroMessage(message='parallel draft')
+    monkeypatch.setattr(llm, 'generate_json', generate)
+    writes = []
+    def execute(sql, params):
+        writes.append((sql, params))
+        return [{'id': 1}]
+    monkeypatch.setattr(intros, 'execute', execute)
+    intros._run_intros('manual')
+    assert maximum == 5
+    outcomes = next(params for sql, params in writes if sql.startswith('INSERT INTO intros('))
+    assert len(outcomes) == 10 and all(row['llm_used'] for row in outcomes)
+
+
+def test_intro_run_selects_only_requested_member(monkeypatch):
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only')
+    monkeypatch.setattr(intros, 'snapshot', lambda: ([dict(id=i, consent_intros=True) for i in (1, 2, 3)], []))
+    monkeypatch.setattr(intros, 'rows', lambda sql, *args: [] if 'FROM llm_cache' in sql or 'SELECT member_id' in sql else [{'id': 1}])
+    recommend = MagicMock(return_value={'items': [dict(member={'id': 3}, score=.5, reasons=[])]})
+    monkeypatch.setattr(intros, 'recommend', recommend)
+    generate = MagicMock(return_value=intros.IntroMessage(message='one draft'))
+    monkeypatch.setattr(llm, 'generate_json', generate)
+    monkeypatch.setattr(intros, 'list_intros', lambda *args: [])
+    writes = []
+    monkeypatch.setattr(intros, 'execute', lambda sql, params: writes.append((sql, params)) or [{'id': 1}])
+    intros._run_intros('manual', member_id=2)
+    assert recommend.call_count == generate.call_count == 1
+    assert recommend.call_args.args[0] == 2
+    outcomes = next(params for sql, params in writes if sql.startswith('INSERT INTO intros('))
+    assert len(outcomes) == 1 and outcomes[0]['member_id'] == 2

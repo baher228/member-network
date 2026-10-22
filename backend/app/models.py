@@ -110,6 +110,7 @@ class IntroRun(BaseModel):
 
 class RunInput(BaseModel):
     trigger: Literal['manual'] = 'manual'
+    member_id: int | None = Field(default=None, ge=1)
 
 
 class RunResult(BaseModel):
@@ -244,6 +245,8 @@ class GraphMetrics(BaseModel):
     density: float
     n_isolated: int
     avg_degree: float
+    n_opted_in: int = 0
+    n_not_opted_in: int = 0
 
 
 class GraphResult(BaseModel):

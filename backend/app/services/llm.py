@@ -33,11 +33,17 @@ class ProbeResult(BaseModel):
 class RunCircuitBreaker:
     def __init__(self):
         self.error = None
+        self._lock = threading.Lock()
+
+    def blocked(self):
+        with self._lock:
+            return self.error is not None
 
     def record_failure(self, exc):
-        if isinstance(exc, CallBudgetExhausted):
-            self.error = 'call budget exhausted'
-            return
+        with self._lock:
+            if isinstance(exc, CallBudgetExhausted):
+                self.error = 'call budget exhausted'
+                return
         status = getattr(exc, 'status_code', None)
         if status not in (401, 402, 403, 404):
             status = next((code for error_type, code in (
@@ -45,7 +51,8 @@ class RunCircuitBreaker:
                 if isinstance(exc, error_type)), None)
         if status is not None:
             detail = f'HTTP {status}{"; provider credits unavailable" if status == 402 else ""}'
-            self.error = f'Skipped LLM call: provider rejected an earlier request in this run ({detail})'
+            with self._lock:
+                self.error = f'Skipped LLM call: provider rejected an earlier request in this run ({detail})'
 
 
 def get_api_key():

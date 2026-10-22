@@ -163,6 +163,19 @@ def test_demo_reset_response_shape(monkeypatch):
     assert response.status_code == 200 and response.json() == expected
 
 
+def test_intro_run_can_target_one_member(monkeypatch):
+    expected = {'run': {'id': 9, 'trigger': 'manual', 'started_at': '2026-01-01T00:00:00Z',
+                        'finished_at': '2026-01-01T00:00:01Z', 'n_members': 1, 'n_drafted': 1,
+                        'n_failed': 0, 'n_skipped': 0, 'llm_status': 'available', 'notes': None}, 'intros': []}
+    called = []
+    monkeypatch.setattr(api, 'run_intros', lambda trigger, member_id=None: called.append((trigger, member_id)) or expected)
+    app = FastAPI()
+    app.include_router(api.router)
+    response = TestClient(app).post('/api/intros/run', json={'trigger': 'manual', 'member_id': 42})
+    assert response.status_code == 200 and response.json() == expected
+    assert called == [('manual', 42)]
+
+
 def test_recommendations_immediately_exclude_new_like_and_pass(database, monkeypatch):
     demo.reset_demo()
     monkeypatch.setattr(db, 'engine', database)

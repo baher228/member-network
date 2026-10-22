@@ -107,7 +107,9 @@ def interaction(body: m.InteractionInput):
 @router.post('/intros/run', response_model=m.RunResult)
 def intro_run(body: m.RunInput = m.RunInput()):
     try:
-        return run_intros(body.trigger)
+        return run_intros(body.trigger, member_id=body.member_id)
+    except KeyError:
+        raise HTTPException(404, 'Member not found')
     except RuntimeError as exc:
         raise HTTPException(409, str(exc))
 

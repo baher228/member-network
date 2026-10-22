@@ -5,7 +5,7 @@ from app.services.intros import draft_intro
 from app.services.graph import graph
 from app.seed import synthetic_data
 from app.eval import evaluate
-from app.models import Recommendations, EvalResult
+from app.models import Recommendations, EvalResult, GraphResult
 
 
 def member(i, **kwargs):
@@ -145,3 +145,9 @@ def test_empty_eval_and_graph():
     network = graph([member(1), member(2), member(3)], [row(1, 2), row(2, 1)])
     assert network['metrics']['n_isolated'] == 1
     assert network['metrics']['density'] == pytest.approx(1/3)
+
+
+def test_graph_api_preserves_opt_in_metrics():
+    result = GraphResult.model_validate(graph([member(1), member(2, opted_in=False)], [])).model_dump()
+    assert result['metrics'] == dict(density=0, n_isolated=1, avg_degree=0, n_opted_in=1, n_not_opted_in=1)
+    assert result['nodes'][1]['isolated'] is False

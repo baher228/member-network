@@ -1,5 +1,6 @@
 import json
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from app.services import llm
@@ -14,7 +15,7 @@ class IntroMessage(BaseModel):
 
 
 def draft_intro(recommendation, client=None, api_key=None, circuit=None):
-    if circuit is not None and circuit.error:
+    if circuit is not None and circuit.blocked():
         return dict(message=None, llm_used=False, status='failed', error=circuit.error)
     key = llm.get_api_key() if api_key is None else api_key
     if not key:
@@ -39,21 +40,24 @@ def list_intros(run_id=None):
     return rows(INTRO_QUERY + (' WHERE i.run_id=:run_id' if run_id is not None else '') + ' ORDER BY i.id DESC', {'run_id': run_id})
 
 
-def run_intros(trigger='manual'):
+def run_intros(trigger='manual', member_id=None):
     with run_lock:
         # Session advisory lock also prevents concurrent runs in other workers.
         with engine.connect() as lock_conn:
             if not lock_conn.execute(text('SELECT pg_try_advisory_lock(7349852)')).scalar():
                 raise RuntimeError('An intro run is already in progress')
             try:
-                return _run_intros(trigger)
+                return _run_intros(trigger, member_id=member_id)
             finally:
                 lock_conn.execute(text('SELECT pg_advisory_unlock(7349852)'))
 
 
-def _run_intros(trigger):
+def _run_intros(trigger, member_id=None):
     members, interactions = snapshot()
-    run = execute('INSERT INTO intro_runs(trigger,n_members) VALUES (:trigger,:n) RETURNING *', {'trigger': trigger, 'n': len(members)})[0]
+    if member_id is not None and not any(member['id'] == member_id for member in members):
+        raise KeyError(member_id)
+    selected_members = members if member_id is None else [member for member in members if member['id'] == member_id]
+    run = execute('INSERT INTO intro_runs(trigger,n_members) VALUES (:trigger,:n) RETURNING *', {'trigger': trigger, 'n': len(selected_members)})[0]
     previous = rows("SELECT member_id,target_id FROM intros WHERE status<>'skipped'")
     cached = {(row['member_id'], row['target_id']): row['message']
               for row in rows('SELECT member_id,target_id,message FROM llm_cache')}
@@ -62,7 +66,7 @@ def _run_intros(trigger):
     circuit = llm.RunCircuitBreaker()
     plans = []
     try:
-        for member in members:
+        for member in selected_members:
             if not member['consent_intros'] or not member.get('opted_in', True):
                 skipped += 1
                 continue
@@ -75,19 +79,36 @@ def _run_intros(trigger):
             plans.append((pair, recommendation))
             previous.append(pair)
         uncached = 0
+        generation_plans = []
         for pair, recommendation in sorted(plans, key=lambda plan: (-plan[1]['score'], plan[0]['member_id'], plan[0]['target_id'])):
             key = (pair['member_id'], pair['target_id'])
             if key in cached:
                 outcome = dict(message=IntroMessage(message=cached[key]).message, llm_used=False, status='sent', error=None)
-            elif uncached >= llm.settings.intro_llm_max_per_run:
+            elif uncached >= min(10, llm.settings.intro_llm_max_per_run):
                 outcome = dict(message=None, llm_used=False, status='skipped', error='skipped: budget cap')
             else:
                 uncached += 1
-                outcome = draft_intro(recommendation, circuit=circuit)
-                if outcome['message'] is not None:
-                    execute('''INSERT INTO llm_cache(member_id,target_id,message) VALUES (:member_id,:target_id,:message)
-                        ON CONFLICT (member_id,target_id) DO NOTHING''', dict(**pair, message=outcome['message']))
-                    cached[key] = outcome['message']
+                generation_plans.append((pair, recommendation))
+                continue
+            pending.append(dict(run_id=run['id'], **pair, score=recommendation['score'],
+                                reasons=json.dumps(recommendation['reasons']), **outcome))
+            if outcome['status'] == 'skipped':
+                skipped += 1
+            elif outcome['status'] == 'failed':
+                failed += 1
+            else:
+                drafted += 1
+        def generate(plan):
+            pair, recommendation = plan
+            return pair, recommendation, draft_intro(recommendation, circuit=circuit)
+
+        with ThreadPoolExecutor(max_workers=5, thread_name_prefix='intro-llm') as pool:
+            generated = list(pool.map(generate, generation_plans))
+        for pair, recommendation, outcome in generated:
+            if outcome['message'] is not None:
+                execute('''INSERT INTO llm_cache(member_id,target_id,message) VALUES (:member_id,:target_id,:message)
+                    ON CONFLICT (member_id,target_id) DO NOTHING''', dict(**pair, message=outcome['message']))
+                cached[(pair['member_id'], pair['target_id'])] = outcome['message']
             pending.append(dict(run_id=run['id'], **pair, score=recommendation['score'],
                                 reasons=json.dumps(recommendation['reasons']), **outcome))
             if outcome['status'] == 'skipped':

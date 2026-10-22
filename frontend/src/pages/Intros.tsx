@@ -3,6 +3,7 @@ import { api, type Intro, type IntroRun, type IntroStatus } from '../api'
 import { useAsync } from '../useAsync'
 import { Badge, Card, Empty, ErrorBox, Label, Loading, PageHeader, fmtTime, type Tone } from '../components/ui'
 import { Reasons } from '../components/reasons'
+import { useSession } from '../session'
 
 const statusTone: Record<IntroStatus, Tone> = { drafted: 'neutral', sent: 'fg', accepted: 'ok', declined: 'bad', failed: 'bad', skipped: 'neutral' }
 
@@ -67,11 +68,23 @@ export default function Intros() {
   const [busy, setBusy] = useState<number | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [filter, setFilter] = useState<IntroStatus | 'all'>('all')
+  const { memberId } = useSession()
+  const viewer = useAsync(() => memberId == null ? Promise.resolve(null) : api.member(memberId), [memberId])
 
   async function run() {
     setRunning(true); setErr(null)
     try {
       const res = await api.runIntros()
+      await runs.reload()
+      setRunId(res.run.id)
+      setNote(`Run #${res.run.id}: ${res.run.n_drafted} intros drafted, ${res.run.n_failed} failed, ${res.run.n_skipped} skipped`)
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) } finally { setRunning(false) }
+  }
+  async function runForViewer() {
+    if (memberId == null) return
+    setRunning(true); setErr(null)
+    try {
+      const res = await api.runIntros(memberId)
       await runs.reload()
       setRunId(res.run.id)
       setNote(`Run #${res.run.id}: ${res.run.n_drafted} intros drafted, ${res.run.n_failed} failed, ${res.run.n_skipped} skipped`)
@@ -92,7 +105,10 @@ export default function Intros() {
   return (
     <div>
       <PageHeader eyebrow="Weekly intro bot" title="One introduction per member, every week">
-        <button disabled={running} className="btn-primary" onClick={run}>{running ? 'Running…' : 'Run weekly intros now'}</button>
+        <div className="flex flex-wrap gap-2">
+          <button disabled={running} className="btn-primary" onClick={run}>{running ? 'Running…' : 'Run weekly intros now'}</button>
+          <button disabled={running || memberId == null} className="btn" onClick={runForViewer}>Draft intro for {viewer.data?.name ?? 'current viewer'}</button>
+        </div>
       </PageHeader>
       {note && <div className="label mb-4 fade-in text-fg/80">{note}</div>}
       {err && <div className="mb-4"><ErrorBox error={err} /></div>}

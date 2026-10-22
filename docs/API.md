@@ -35,7 +35,7 @@ GET  /members/{id} -> Member
 GET  /members/{id}/recommendations?k=10 -> { member_id, model:{ n_interactions:int, member_interactions:int,
        cf_weight:float, content_weight:float, embedder:str }, items:[Recommendation] }
 POST /interactions { member_id, target_id, kind:"like"|"pass" } -> { ok:true, n_interactions:int }
-POST /intros/run { trigger?:"manual" } -> { run:IntroRun, intros:[Intro] }
+POST /intros/run { trigger?:"manual", member_id?:int } -> { run:IntroRun, intros:[Intro] }
 GET  /intros/runs -> [IntroRun]
 GET  /intros?run_id= -> [Intro]
 POST /intros/{id}/respond { response:"accepted"|"declined" } -> { intro:Intro, n_interactions:int }
