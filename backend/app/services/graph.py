@@ -17,8 +17,9 @@ def graph(members, interactions, attendance=()):
     for row in attendance:
         if row['member_id'] in events:
             events[row['member_id']].append({key: row[key] for key in ('event_name', 'event_url', 'event_date')})
-    nodes = [dict(id=m['id'], name=m['name'], degree=len(neighbors[m['id']]), isolated=not neighbors[m['id']],
+    nodes = [dict(id=m['id'], name=m['name'], degree=len(neighbors[m['id']]), isolated=m.get('opted_in', True) and not neighbors[m['id']],
                   is_seed=m['is_seed'], opted_in=m.get('opted_in', True), events=events[m['id']]) for m in members]
-    n = len(nodes)
-    degree_sum = sum(node['degree'] for node in nodes)
-    return dict(nodes=nodes, edges=edges, metrics=dict(density=degree_sum/(n*(n-1)) if n > 1 else 0.0, n_isolated=sum(node['isolated'] for node in nodes), avg_degree=degree_sum/n if n else 0.0))
+    active = [node for node in nodes if node['opted_in']]
+    n = len(active)
+    degree_sum = sum(node['degree'] for node in active)
+    return dict(nodes=nodes, edges=edges, metrics=dict(density=degree_sum/(n*(n-1)) if n > 1 else 0.0, n_isolated=sum(node['isolated'] for node in active), avg_degree=degree_sum/n if n else 0.0, n_opted_in=n, n_not_opted_in=len(nodes) - n))
