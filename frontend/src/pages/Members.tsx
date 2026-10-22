@@ -44,7 +44,7 @@ export default function Members() {
       {graph.data && (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            ['Members', String(graph.data.nodes.length)],
+            ['Members', graph.data.metrics.n_not_opted_in ? `${graph.data.metrics.n_opted_in} opted in · +${graph.data.metrics.n_not_opted_in} Luma` : String(graph.data.nodes.length)],
             ['Connections', String(graph.data.edges.length)],
             ['Avg degree', graph.data.metrics.avg_degree.toFixed(1)],
             ['Isolated', String(graph.data.metrics.n_isolated)],

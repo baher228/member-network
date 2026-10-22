@@ -41,7 +41,7 @@ export type Health = {
 export type GraphResponse = {
   nodes: { id: number; name: string; degree: number; isolated: boolean; is_seed: boolean; opted_in?: boolean; events?: { event_name: string; event_url: string; event_date: string }[] }[]
   edges: { source: number; target: number; kind: string }[]
-  metrics: { density: number; n_isolated: number; avg_degree: number }
+  metrics: { density: number; n_isolated: number; avg_degree: number; n_opted_in?: number; n_not_opted_in?: number }
 }
 
 export type ThreadResult = {
@@ -81,7 +81,7 @@ export const api = {
   recommendations: (id: number, k = 10) => req<RecResponse>(`/members/${id}/recommendations?k=${k}`),
   interact: (member_id: number, target_id: number, kind: 'like' | 'pass') =>
     post<{ ok: boolean; n_interactions: number }>('/interactions', { member_id, target_id, kind }),
-  runIntros: () => post<{ run: IntroRun; intros: Intro[] }>('/intros/run', { trigger: 'manual' }),
+  runIntros: (memberId?: number) => post<{ run: IntroRun; intros: Intro[] }>('/intros/run', { trigger: 'manual', ...(memberId == null ? {} : { member_id: memberId }) }),
   runs: () => req<IntroRun[]>('/intros/runs'),
   intros: (runId?: number) => req<Intro[]>(`/intros${runId ? `?run_id=${runId}` : ''}`),
   respond: (id: number, response: 'accepted' | 'declined') =>
