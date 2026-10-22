@@ -47,9 +47,7 @@ export function HealthBar() {
         {h && (
           <>
             <Badge tone={h.db ? 'ok' : 'bad'}>DB {h.db ? 'connected' : 'down'}</Badge>
-            {h.llm.available
-              ? <Badge tone="ok" title="Key configured; individual calls can still fail — see run logs">{h.llm.provider === 'grok' ? 'Grok' : 'Gemini'} key set · {h.llm.model}</Badge>
-              : <Badge tone="warn" title={h.llm.reason ?? undefined}>LLM unavailable – rule-only reasoning</Badge>}
+            <LlmBadge llm={h.llm} />
             <span className="label">{h.n_members} members · {h.n_interactions} interactions</span>
             {h.scheduler_next_run && <span className="label sm:ml-auto">Next weekly run {fmtTime(h.scheduler_next_run)}</span>}
           </>
@@ -57,4 +55,14 @@ export function HealthBar() {
       </div>
     </div>
   )
+}
+
+function LlmBadge({ llm }: { llm: Health['llm'] }) {
+  const name = llm.provider === 'grok' ? 'Grok' : 'Gemini'
+  const last = llm.last_call
+  const state = llm.state ?? (!llm.available ? 'unavailable' : last ? (last.ok ? 'working' : 'unavailable') : 'not_checked')
+  if (state === 'working') return <Badge tone="ok" title={last ? `Last successful call ${fmtTime(last.at)}` : undefined}>{name} working · {llm.model}</Badge>
+  if (state === 'not_checked') return <Badge title="Key configured; no generation call yet">{name} · not checked yet</Badge>
+  const why = !llm.available ? 'no key' : last?.http_status === 402 ? '402 credits depleted' : last?.http_status ? `HTTP ${last.http_status}` : 'call failed'
+  return <Badge tone="warn" title={last?.error ?? llm.reason ?? undefined}>LLM unavailable · {why} – rule-only reasoning</Badge>
 }

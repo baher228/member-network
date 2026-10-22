@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Recommendation } from '../api'
 import { useSession } from '../session'
@@ -48,6 +48,10 @@ export default function ForYou() {
   const [busy, setBusy] = useState<number | null>(null)
   const [actErr, setActErr] = useState<string | null>(null)
   const [lastAct, setLastAct] = useState<string | null>(null)
+  const [rated, setRated] = useState<{ id: number; name: string; kind: 'like' | 'pass' }[]>([])
+  useEffect(() => { setRated([]); setLastAct(null) }, [memberId])
+  const ratedIds = new Set(rated.map((x) => x.id))
+  const items = (data?.items ?? []).filter((r) => !ratedIds.has(r.member.id))
 
   async function act(r: Recommendation, kind: 'like' | 'pass') {
     if (memberId == null) return
@@ -55,6 +59,7 @@ export default function ForYou() {
     setActErr(null)
     try {
       const res = await api.interact(memberId, r.member.id, kind)
+      setRated((xs) => [...xs, { id: r.member.id, name: r.member.name, kind }])
       setLastAct(`${kind === 'like' ? 'Liked' : 'Passed'} ${r.member.name} · model updated from ${res.n_interactions} interactions`)
       await reload()
     } catch (e) {
@@ -84,14 +89,20 @@ export default function ForYou() {
           {!me.data.consent_intros && <div className="sm:col-span-2"><Badge tone="warn">You haven't consented to intros — you won't appear in others' suggestions</Badge></div>}
         </Card>
       )}
-      {lastAct && <div className="label mb-4 fade-in text-fg/80">{lastAct}</div>}
+      {lastAct && <div className="label mb-2 fade-in text-fg/80">{lastAct}</div>}
+      {rated.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          <Label>Already rated</Label>
+          {rated.map((x) => <Badge key={x.id} tone={x.kind === 'like' ? 'ok' : 'neutral'}>{x.kind === 'like' ? 'Liked' : 'Passed'} {x.name}</Badge>)}
+        </div>
+      )}
       {actErr && <div className="mb-4"><ErrorBox error={actErr} /></div>}
       {loading && !data && <Loading text="Scoring members" />}
       {error && <ErrorBox error={error} onRetry={reload} />}
-      {data && data.items.length === 0 && <Empty title="No suggestions left">You've seen everyone who consented to intros.</Empty>}
-      {data && data.items.length > 0 && (
+      {data && items.length === 0 && <Empty title="No suggestions left">You've seen everyone who consented to intros.</Empty>}
+      {data && items.length > 0 && (
         <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-3 ${loading ? 'opacity-60 transition-opacity' : ''}`}>
-          {data.items.map((r) => <RecCard key={r.member.id} r={r} busy={busy === r.member.id} onAct={(k) => act(r, k)} />)}
+          {items.map((r) => <RecCard key={r.member.id} r={r} busy={busy === r.member.id} onAct={(k) => act(r, k)} />)}
         </div>
       )}
       <p className="mt-6 text-xs text-muted">
