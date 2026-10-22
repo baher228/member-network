@@ -121,7 +121,8 @@ def recommend(member_id, members, interactions, existing_intros=(), k=10, encode
         if contributing:
             co_likers = int(np.count_nonzero((matrix[:, t] > 0) & np.any(matrix[:, contributing] > 0, axis=1)))
             names = [{'id': members[j]['id'], 'name': members[j]['name']} for j in contributing]
-            reasons.append(dict(kind='cf', text=f'You liked {" and ".join(n["name"] for n in names)}; {co_likers} people who liked them also liked/connected with {target["name"]}.', weight=weight, evidence=dict(liked=names, co_likers=co_likers)))
+            target_name = target['name'].rstrip('.')
+            reasons.append(dict(kind='cf', text=f'You liked {" and ".join(n["name"] for n in names)}; {co_likers} people who liked them also liked/connected with {target_name}.', weight=weight, evidence=dict(liked=names, co_likers=co_likers)))
         if raw_content[i] > 0.01:
             want, build = short_snippet(user['wants']), short_snippet(target['builds'])
             reasons.append(dict(kind='content', text=f'{target["name"]} builds: "{build}"; you want: "{want}".', weight=1-weight, evidence=dict(your_want=want, their_build=build, similarity=float(raw_content[i]))))

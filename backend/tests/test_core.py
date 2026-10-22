@@ -20,6 +20,7 @@ def row(a, b, kind='like'):
 
 def test_cf_cosine_and_concrete_co_likers():
     members = [member(i) for i in range(1, 7)]
+    members[4]['name'] = 'Ellis K.'
     interactions = [row(1, 2), row(1, 3), row(4, 2), row(4, 5), row(6, 3), row(6, 5)]
     matrix, sims, ids = cf_matrix(members, interactions)
     assert sims[ids[2], ids[5]] == pytest.approx(0.5)
@@ -28,6 +29,7 @@ def test_cf_cosine_and_concrete_co_likers():
     target = next(item for item in result['items'] if item['member']['id'] == 5)
     reason = next(r for r in target['reasons'] if r['kind'] == 'cf')
     assert reason['evidence']['co_likers'] == 2
+    assert reason['text'].endswith('Ellis K.') and '..' not in reason['text']
     assert {liked['id'] for liked in reason['evidence']['liked']} == {2, 3}
     Recommendations.model_validate(result)
 
