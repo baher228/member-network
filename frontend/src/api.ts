@@ -34,7 +34,7 @@ export type EvalResponse = {
   results: { model: string; hit_rate: number; precision: number; hit_rate_std?: number; precision_std?: number; slice?: 'all' | 'cold-start' }[]; notes: string[]
 }
 export type Health = {
-  db: boolean; llm: { provider?: 'gemini' | 'grok'; state?: 'not_checked' | 'working' | 'unavailable'; last_call?: { ok: boolean; at: string; http_status: number | null; error: string | null } | null; available: boolean; model: string | null; reason: string | null }
+  db: boolean; llm: { provider?: 'gemini' | 'grok' | 'cursor'; state?: 'not_checked' | 'working' | 'unavailable'; last_call?: { ok: boolean; at: string; http_status: number | null; error: string | null } | null; available: boolean; model: string | null; reason: string | null }
   n_members: number; n_interactions: number; scheduler_next_run?: string | null
 }
 export type GraphResponse = {

@@ -58,11 +58,19 @@ export function HealthBar() {
 }
 
 function LlmBadge({ llm }: { llm: Health['llm'] }) {
-  const name = llm.provider === 'grok' ? 'Grok' : 'Gemini'
+  const name = llm.provider === 'cursor' ? `${prettyModel(llm.model)} via Cursor` : llm.provider === 'grok' ? 'Grok' : 'Gemini'
   const last = llm.last_call
   const state = llm.state ?? (!llm.available ? 'unavailable' : last ? (last.ok ? 'working' : 'unavailable') : 'not_checked')
-  if (state === 'working') return <Badge tone="ok" title={last ? `Last successful call ${fmtTime(last.at)}` : undefined}>{name} working · {llm.model}</Badge>
+  if (state === 'working') return <Badge tone="ok" title={last ? `Last successful call ${fmtTime(last.at)}` : undefined}>{name} working</Badge>
   if (state === 'not_checked') return <Badge title="Key configured; no generation call yet">{name} · not checked yet</Badge>
   const why = !llm.available ? 'no key' : last?.http_status === 402 ? '402 credits depleted' : last?.http_status ? `HTTP ${last.http_status}` : 'call failed'
   return <Badge tone="warn" title={last?.error ?? llm.reason ?? undefined}>LLM unavailable · {why} – rule-only reasoning</Badge>
+}
+
+function prettyModel(m: string | null) {
+  if (!m) return 'LLM'
+  const g = m.match(/(gemini|grok|claude|gpt)-(\d+(?:\.\d+)?)(?:-(flash|pro|sonnet|opus|mini))?/i)
+  if (!g) return m
+  const cap = (x: string) => (x.toLowerCase() === 'gpt' ? 'GPT' : x[0].toUpperCase() + x.slice(1).toLowerCase())
+  return [cap(g[1]), g[2], g[3] && cap(g[3])].filter(Boolean).join(' ')
 }
