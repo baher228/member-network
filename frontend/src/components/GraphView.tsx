@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import ForceGraph2D from 'react-force-graph-2d'
+import ForceGraph2D, { type ForceGraphMethods } from 'react-force-graph-2d'
 import type { GraphResponse } from '../api'
 
 export default function GraphView({ graph, onSelect }: { graph: GraphResponse; onSelect?: (id: number) => void }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(800)
+  const fg = useRef<ForceGraphMethods | undefined>(undefined)
   useEffect(() => {
     const el = wrap.current
     if (!el) return
@@ -19,7 +20,9 @@ export default function GraphView({ graph, onSelect }: { graph: GraphResponse; o
   return (
     <div ref={wrap} className="w-full overflow-hidden rounded-xl border border-line bg-card">
       <ForceGraph2D
+        ref={fg}
         graphData={data}
+        onEngineStop={() => fg.current?.zoomToFit(300, 30)}
         width={width}
         height={width < 500 ? 320 : 420}
         backgroundColor="#121212"
