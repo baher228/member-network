@@ -5,7 +5,7 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { background: #0a0a0a; color: #ededed; min-height: 100%; }
+html, body, #root { overflow-x: hidden; background: #0a0a0a; color: #ededed; min-height: 100%; }
 body { font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 * { border-color: #292929; }
 ::selection { background: rgba(255,255,255,.15); }

@@ -42,7 +42,7 @@ export default function App() {
                   </NavLink>
                 ))}
               </nav>
-              <div className="ml-auto"><MemberPicker /></div>
+              <div className="w-full sm:ml-auto sm:w-auto"><MemberPicker /></div>
             </div>
           </header>
           <HealthBar />

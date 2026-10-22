@@ -13,10 +13,10 @@ export function MemberPicker() {
     }).catch(() => setMembers([]))
   }, [memberId, setMemberId])
   return (
-    <label className="flex items-center gap-2">
+    <label className="flex min-w-0 items-center gap-2">
       <span className="label">Viewing as</span>
       <select
-        className="input w-44 py-1.5 sm:w-52"
+        className="input min-w-0 flex-1 py-1.5 sm:w-56 sm:flex-none"
         value={memberId ?? ''}
         onChange={(e) => setMemberId(e.target.value ? Number(e.target.value) : null)}
       >
@@ -50,7 +50,7 @@ export function HealthBar() {
             {h.llm.available
               ? <Badge tone="ok">Grok · {h.llm.model}</Badge>
               : <Badge tone="warn" title={h.llm.reason ?? undefined}>LLM unavailable – rule-only reasoning</Badge>}
-            <span className="label ml-1">{h.n_members} members · {h.n_interactions} interactions</span>
+            <span className="label">{h.n_members} members · {h.n_interactions} interactions</span>
             {h.scheduler_next_run && <span className="label sm:ml-auto">Next weekly run {fmtTime(h.scheduler_next_run)}</span>}
           </>
         )}
