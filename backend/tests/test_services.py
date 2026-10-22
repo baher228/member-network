@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import httpx
 import numpy as np
 import pytest
-from app.services import evidence as ev, speakers, intros
+from app.services import evidence as ev, speakers, intros, llm
 from app.services.recommender import Embedder
 from app.models import SpeakersResult
 
@@ -101,7 +101,8 @@ def test_llm_structured_message():
 def test_run_no_key_stays_drafted(monkeypatch):
     members = [dict(id=1, consent_intros=True), dict(id=2, consent_intros=False)]
     monkeypatch.setattr(intros, 'snapshot', lambda: (members, []))
-    monkeypatch.setattr(intros.settings, 'xai_api_key', '')
+    monkeypatch.setattr(llm.settings, 'llm_provider', 'gemini')
+    monkeypatch.setattr(llm.settings, 'gemini_api_key', '')
     monkeypatch.setattr(intros, 'rows', lambda *args: [] if 'SELECT member_id' in args[0] else [{'id': 1}])
     monkeypatch.setattr(intros, 'recommend', lambda *args, **kwargs: {'items': [{'member': {'id': 2}, 'score': 0.5, 'reasons': []}]})
     monkeypatch.setattr(intros, 'list_intros', lambda *args: [])

@@ -139,7 +139,8 @@ def test_persistence_records_result_id_and_log(monkeypatch):
         def begin(self):
             yield Connection()
     monkeypatch.setattr(threads, 'engine', Engine())
-    monkeypatch.setattr(threads.settings, 'xai_api_key', '')
+    monkeypatch.setattr(threads.settings, 'llm_provider', 'gemini')
+    monkeypatch.setattr(threads.settings, 'gemini_api_key', '')
     result = threads.persist_analysis(threads.analyze_chat(discord('Any ideas?'), now=NOW, api_key=''))
     assert result.run_id == 23
     assert writes[0][1]['llm'] == 'unavailable'
@@ -148,7 +149,8 @@ def test_persistence_records_result_id_and_log(monkeypatch):
 
 
 def test_routes_no_db(monkeypatch):
-    monkeypatch.setattr(threads.settings, 'xai_api_key', '')
+    monkeypatch.setattr(threads.settings, 'llm_provider', 'gemini')
+    monkeypatch.setattr(threads.settings, 'gemini_api_key', '')
     monkeypatch.setattr(threads, 'persist_analysis', lambda result: result.model_copy(update={'run_id': 42}))
     monkeypatch.setattr(threads, 'list_runs', lambda: [])
     app = FastAPI()

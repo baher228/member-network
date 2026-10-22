@@ -20,7 +20,7 @@ SpeakerCandidate = { kind:"member"|"external", member_id:int|null, name:str, han
   match_reasons:[str], evidence:[Evidence] }
 
 ## Endpoints
-GET  /health -> { db:bool, llm:{available:bool, model:str|null, reason:str|null}, n_members:int, n_interactions:int }
+GET  /health -> { db:bool, llm:{provider:"gemini"|"grok", available:bool, model:str|null, reason:str|null}, n_members:int, n_interactions:int }
 POST /members (questionnaire body: Member minus id/is_seed/created_at) -> Member   (422 on invalid)
 GET  /members -> [ Member & { likes_given:int, likes_received:int, connections:int, isolated:bool } ]
 GET  /members/{id} -> Member
@@ -38,6 +38,10 @@ GET  /eval -> { computed_at, holdout_fraction:0.2, k:5, n_test_users:int, n_hold
                   precision_std?:float|null, slice?:"all"|"cold-start"|null }], notes:[str] }
 POST /eval/run -> same as GET /eval (recompute)
 GET  /graph -> { nodes:[{id,name,degree,isolated,is_seed}], edges:[{source,target,kind}], metrics:{density:float, n_isolated:int, avg_degree:float} }
+
+### LLM availability
+Health's `llm.provider` is additive. `available` means the selected provider's key is
+configured, not that its credits/model are usable. Gemini is the default; Grok is optional.
 
 ### Speaker result selection
 Speaker results keep the same flat `items` array, with at most 30 candidates sorted by score.
@@ -93,12 +97,13 @@ Eligible scores sum silence (up to .4 at 14 days), question/offer (.3), particip
 .2 at two people), activity (up to .1 at ten messages); ineligible threads score zero.
 Each score/decision has concrete reasons. Results are sorted descending by score.
 
-Only selected threads are sent to Grok for a facts-only, Pydantic-validated nudge draft.
+Only selected threads are sent to the configured LLM (Gemini by default, optional Grok)
+for a facts-only, Pydantic-validated nudge draft.
 Nudges are **never sent**. Missing key: `nudge:null, llm_used:false, status:"drafted"`.
 LLM error/invalid JSON: `status:"failed"` and sanitized error. Unselected: `status:"skipped"`.
 `run_id` identifies the persisted result JSON; raw exports are not stored separately.
 Avoid submitting private chat logs to an untrusted demo; selected last-message facts may
-be sent to xAI when `XAI_API_KEY` is configured.
+be sent to Google or xAI when the selected provider's API key is configured.
 
 GET `/threads/runs` → last 20 `[{id:int, created_at:iso, n_threads:int, n_revive:int,
 llm_status:"available"|"unavailable"|"partial"}]`, newest first. `partial` means at least

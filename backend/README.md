@@ -39,7 +39,18 @@ roles are reused; only missing roles are created for local PostgreSQL.
 For a separate verification server without changing port 8000, run from `backend`:
 `.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001`.
 
-`backend/.env` is optional and ignored by git; `.env.example` lists environment names only. Configure `XAI_API_KEY` and `GROK_MODEL` to enable Grok. Without a key, intros remain drafted with **null messages**, never canned prose. Generated messages are marked sent for **simulated delivery only**. No email/SMS is sent. Startup lists available xAI model IDs when configured. API call errors produce failed intros with sanitized error types.
+`backend/.env` is optional and ignored by git; `.env.example` lists environment names only.
+`LLM_PROVIDER=gemini` is the default, using `GEMINI_API_KEY` and `GEMINI_MODEL`
+(default `gemini-3.8-flash`) through Google's OpenAI-compatible endpoint. Optional
+`LLM_PROVIDER=grok` uses `XAI_API_KEY` and `GROK_MODEL` (default `grok-3-mini`).
+Both intros and thread nudges share one client module. Gemini is prompted for JSON without
+requiring `response_format`; both providers' JSON is Pydantic-validated. Health reports
+the selected `provider` and `model`; `available` means its key is configured, not that
+generation or billing has been verified. A depleted-credit HTTP 402 becomes a sanitized
+failed draft, with no key or provider response body exposed.
+Without the selected provider's key, intros remain drafted with **null messages**, never
+canned prose. Generated messages are marked sent for **simulated delivery only**. No
+email/SMS is sent. Startup lists available xAI model IDs only when Grok is selected.
 
 `EMBEDDER=tf-idf` forces the fast offline fallback. Default uses CPU `all-MiniLM-L6-v2` and caches embeddings by member/text hash; model-load failures are logged and the API reports `tf-idf` honestly. Initial model loading may download Hugging Face weights. Optional `MAX_CF_WEIGHT` (default .7) and `CF_K0` (default 8) control blending.
 
@@ -74,6 +85,6 @@ rules. Without `now`, analysis uses the real current UTC time. Discord thread ma
 and WhatsApp exports are supported; WhatsApp splits on >36h silence. Revival uses
 deterministic silence/participation/question/offer/closing rules, not LLM judgment.
 Configure `THREAD_SILENCE_DAYS` (default 3) to change the strict silence threshold.
-Only worthy threads get Grok nudge drafts; without a key the nudge is null, never canned.
+Only worthy threads get Gemini (or optional Grok) nudge drafts; without a key the nudge is null, never canned.
 Nothing is sent. Analyses persist in RLS-protected `thread_runs`; GET `/api/threads/runs`
 lists the latest 20 summaries. See `docs/API.md` for exact schemas, scoring and privacy.

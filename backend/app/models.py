@@ -169,6 +169,7 @@ class EvalResult(BaseModel):
 
 
 class LLMHealth(BaseModel):
+    provider: Literal['gemini', 'grok']
     available: bool
     model: str | None
     reason: str | None

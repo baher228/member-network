@@ -5,7 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.routes import api, threads
-from app.services.intros import check_llm, run_intros
+from app.services.intros import run_intros
+from app.services.llm import check_llm
 
 logging.basicConfig(level=logging.INFO)
 

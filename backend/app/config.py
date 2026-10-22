@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,6 +8,9 @@ class Settings(BaseSettings):
     supabase_url: str = ''
     supabase_publishable_key: str = ''
     supabase_secret_key: str = ''
+    llm_provider: Literal['gemini', 'grok'] = 'gemini'
+    gemini_api_key: str = ''
+    gemini_model: str = 'gemini-3.8-flash'
     xai_api_key: str = ''
     grok_model: str = 'grok-3-mini'
     github_token: str = ''
