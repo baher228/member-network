@@ -111,7 +111,16 @@ cd frontend && npm run build
 
 ## Evaluation
 
-`python -m app.eval` / Evaluation panel: for each seed member with ≥5 likes, hold out 20% of likes, train on the rest, measure whether held-out people appear in the top 5. Averaged over 5 fixed hold-out seeds, plus a cold-start slice (2 training likes per user). Numbers are reported as computed — see the panel; on this synthetic data the hybrid does **not** consistently beat plain CF, and the README/notes say so. The seed world is synthetic, so these numbers are a sanity check of the pipeline, not a claim about real communities.
+`python -m app.eval` / Evaluation panel: for each seed member with ≥5 likes, hold out 20% of likes, train on the rest, measure whether held-out people appear in the top 5. Averaged over 5 fixed hold-out seeds, plus a cold-start slice (2 training likes per user). Latest run (mean ± population std over 5 splits, 54 users, k=5):
+
+| model | hit-rate@5 | precision@5 | cold-start hit-rate@5 |
+| --- | --- | --- | --- |
+| popularity | 0.104 ± 0.034 | 0.021 ± 0.007 | 0.089 ± 0.030 |
+| CF (item-item) | 0.089 ± 0.044 | 0.018 ± 0.009 | 0.111 ± 0.012 |
+| content (MiniLM) | 0.215 ± 0.034 | 0.043 ± 0.007 | 0.211 ± 0.034 |
+| hybrid | **0.267 ± 0.042** | **0.053 ± 0.008** | **0.230 ± 0.032** |
+
+Where it doesn't win: **CF alone is no better than popularity** on this data (≈4 training likes per user is too sparse for item-item CF), and the hybrid's lead over content is about one standard deviation. A single earlier split showed CF/content/hybrid tied at 0.148, which is why we now average five splits. Numbers in the panel are recomputed from the live DB, so they move slightly as you add likes in the demo. The seed world is synthetic, so these numbers are a sanity check of the pipeline, not a claim about real communities.
 
 ## Decisions
 
