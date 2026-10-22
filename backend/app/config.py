@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     xai_api_key: str = ''
     grok_model: str = 'grok-3-mini'
     github_token: str = ''
+    cognee_enabled: bool = False
+    cognee_api_url: str = ''
+    cognee_api_key: str = ''
+    cognee_tenant_id: str = ''
+    cognee_user_id: str = ''
     luma_event_ids: str = 'evt-Yz7RR89Zlv56tya'
     embedder: str = 'sentence-transformers'
     max_cf_weight: float = 0.7

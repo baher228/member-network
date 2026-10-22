@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, type SpeakerCandidate, type SpeakerResponse } from '../api'
 import { Badge, Card, Empty, ErrorBox, Label, Loading, PageHeader, fmtTime } from '../components/ui'
+import { CogneeCard } from '../components/CogneeCard'
 
 const examples = ['voice agents', 'developer tools', 'climate tech', 'payments', 'community building']
 
@@ -59,6 +60,7 @@ export default function Speakers() {
   return (
     <div>
       <PageHeader eyebrow="Speaker finder" title="Who could speak on this topic?" />
+      <CogneeCard />
       <Card className="mb-6 p-4">
         <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row">
           <input className="input flex-1" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. speech recognition for voice agents" />

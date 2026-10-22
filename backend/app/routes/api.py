@@ -13,6 +13,7 @@ from app.eval import get_evaluation
 from app.services.demo import reset_demo
 from app.services.member_identity import submit_questionnaire
 from app.import_luma import import_csv, MAX_BYTES
+from app.cognee_client import health as cognee_health
 
 router = APIRouter(prefix='/api')
 scheduler = None
@@ -27,7 +28,7 @@ def health():
     except Exception:
         db = False
     job = scheduler.get_job('weekly-intros') if scheduler else None
-    return dict(db=db, llm=llm_health(), n_members=n_members, n_interactions=n_interactions, scheduler_next_run=job.next_run_time if job else None)
+    return dict(db=db, llm=llm_health(), cognee=cognee_health(), n_members=n_members, n_interactions=n_interactions, scheduler_next_run=job.next_run_time if job else None)
 
 
 @router.post('/demo/reset', response_model=m.DemoResetResult)

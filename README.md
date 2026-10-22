@@ -159,6 +159,29 @@ Where it doesn't win: **CF alone is no better than popularity** on this data (â‰
 - One uvicorn worker required (scheduler runs in-process).
 - Cut: Discord bot, Notion export, WhatsApp, LinkedIn.
 
+## Cognee partner integration
+
+Opt-in only: `POST /api/cognee/sync` (or `cd backend && python -m app.cognee_sync`)
+uploads one text document per member with `opted_in=true` and intro **or** speaker
+consent to the `member-network` dataset, then runs Cognee cognify. Documents contain
+name, builds, wants, speaker topics, consent flags and a short already-cached public
+GitHub evidence summary when available. No emails, likes, attendance, or not-opted-in
+Luma profiles are sent. This consent gate limits sharing with the external partner;
+sync never changes local/Supabase members or interactions. It does not remove past
+uploads if consent is later withdrawn; partner-side deletion must be handled before
+using this beyond the demo.
+
+Set `COGNEE_ENABLED=true`, `COGNEE_API_URL`, `COGNEE_API_KEY`, and `COGNEE_TENANT_ID`
+in the ignored `backend/.env`; `COGNEE_USER_ID` is reserved for deployment context,
+not sent as an undocumented auth header. Authentication uses `X-Api-Key` and
+`X-Tenant-Id`. Disabled by default, endpoints return 503 and the Speakers card hides.
+Health adds `cognee: {enabled, configured}`. The card has a lead-operated sync button
+and asks `POST /api/cognee/search {query}` using `GRAPH_COMPLETION`. Answers are
+displayed verbatim, not rewritten by our LLM. Errors are explicit (credentials
+redacted), with no fallback prose. Upload/search time out after 60s, cognify after
+120s; no automatic retries. Sync is additive; do not repeatedly sync unchanged data
+unnecessarily. Cognee generation is separate from the intro/thread Cursor budget.
+
 ## Reused open-source components
 
 FastAPI (MIT), Pydantic (MIT), SQLAlchemy (MIT), psycopg (LGPL-3.0), httpx (BSD-3), APScheduler (MIT), scikit-learn (BSD-3), numpy (BSD-3), sentence-transformers (Apache-2.0) with `all-MiniLM-L6-v2` (Apache-2.0), PyTorch (BSD-3), OpenAI Python SDK (Apache-2.0, used against Google/xAI APIs), React (MIT), Vite (MIT), Tailwind CSS (MIT), React Router (MIT), Geist fonts (SIL OFL 1.1), react-force-graph-2d (MIT). All application code in this repo is original work written during the event.

@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.routes import api, threads
+from app.cognee_client import router as cognee_router
 from app.services.intros import run_intros
 from app.services.llm import check_llm, probe_once
 
@@ -31,3 +32,4 @@ app = FastAPI(title='Member Network', version='1.0.0', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173'], allow_methods=['*'], allow_headers=['*'])
 app.include_router(api.router)
 app.include_router(threads.router)
+app.include_router(cognee_router)

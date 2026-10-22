@@ -35,6 +35,7 @@ export type EvalResponse = {
   results: { model: string; hit_rate: number; precision: number; hit_rate_std?: number; precision_std?: number; slice?: 'all' | 'cold-start' }[]; notes: string[]
 }
 export type Health = {
+  cognee?: { enabled: boolean; configured: boolean }
   db: boolean; llm: { provider?: 'gemini' | 'grok' | 'cursor'; state?: 'not_checked' | 'working' | 'unavailable'; last_call?: { ok: boolean; at: string; http_status: number | null; error: string | null } | null; available: boolean; model: string | null; reason: string | null }
   n_members: number; n_interactions: number; scheduler_next_run?: string | null
 }
@@ -74,6 +75,8 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 const post = <T,>(path: string, body?: unknown) => req<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) })
 
 export const api = {
+  cogneeSearch: (query: string) => post<{ source: 'cognee'; status: string; answer: unknown; error: string | null }>('/cognee/search', { query }),
+  cogneeSync: () => post<{ source: 'cognee'; status: string; sent: number; excluded: number; not_opted_in_excluded: number; no_consent_excluded: number; error: string | null }>('/cognee/sync'),
   health: () => req<Health>('/health'),
   members: () => req<MemberStats[]>('/members'),
   member: (id: number) => req<Member>(`/members/${id}`),

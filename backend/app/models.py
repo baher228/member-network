@@ -203,9 +203,15 @@ class LLMHealth(BaseModel):
     last_call: LLMCallResult | None = None
 
 
+class CogneeHealth(BaseModel):
+    enabled: bool = False
+    configured: bool = False
+
+
 class Health(BaseModel):
     db: bool
     llm: LLMHealth
+    cognee: CogneeHealth = Field(default_factory=CogneeHealth)
     n_members: int
     n_interactions: int
     scheduler_next_run: datetime | None
