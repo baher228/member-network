@@ -51,8 +51,18 @@ embedder = Embedder()
 
 def normalize(values):
     values = np.maximum(0, np.asarray(values, dtype=float))
-    low, high = values.min(initial=0), values.max(initial=0)
+    if not values.size:
+        return values
+    low, high = values.min(), values.max()
     return (values-low)/(high-low) if high > low else values * 0
+
+
+def short_snippet(text, limit=60):
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    prefix = text[:limit-1]
+    return (prefix.rsplit(' ', 1)[0] if ' ' in prefix else '') + '…'
 
 
 def hybrid_weight(n, max_cf=None, k0=None):
@@ -113,7 +123,7 @@ def recommend(member_id, members, interactions, existing_intros=(), k=10, encode
             names = [{'id': members[j]['id'], 'name': members[j]['name']} for j in contributing]
             reasons.append(dict(kind='cf', text=f'You liked {" and ".join(n["name"] for n in names)}; {co_likers} people who liked them also liked/connected with {target["name"]}.', weight=weight, evidence=dict(liked=names, co_likers=co_likers)))
         if raw_content[i] > 0.01:
-            want, build = user['wants'][:200], target['builds'][:200]
+            want, build = short_snippet(user['wants']), short_snippet(target['builds'])
             reasons.append(dict(kind='content', text=f'{target["name"]} builds: "{build}"; you want: "{want}".', weight=1-weight, evidence=dict(your_want=want, their_build=build, similarity=float(raw_content[i]))))
         if raw_cf[t] < 0.01 and raw_content[i] < 0.05:
             if mode == 'hybrid':

@@ -29,8 +29,17 @@ def evaluate(members, interactions, encoder=None):
             precision.append(count/5)
         results.append(dict(model=mode, hit_rate=sum(hits)/len(hits) if hits else 0.0, precision=sum(precision)/len(precision) if precision else 0.0))
     best = max(results, key=lambda r: r['hit_rate'])
+    notes = [f'Highest hit-rate: {best["model"]} (ties resolved by display order).',
+             f'Embedder: {(encoder or embedder).name}. Fixed random holdout; no tuning.',
+             'Only consenting seed users with at least five eligible seed likes are evaluated.',
+             'CF and content use per-user candidate min-max scaling to [0,1]; constant components become zero.',
+             'CF weight = max_cf * n/(n+k0) (defaults: max_cf=0.7, k0=8); content gets the remainder.',
+             'Synthetic likes combine affinity, tagged complementarity, popularity and noise; text similarity cannot reproduce all four.']
+    metrics = {row['model']: row for row in results}
+    if metrics['hybrid']['hit_rate'] < metrics['cf']['hit_rate']:
+        notes.append('Hybrid trails CF on this holdout: adding content reorders the CF ranking, and semantic similarity is not the generator\'s exact tag matching. This aggregate does not isolate the cause of the gap; weights were not tuned to win.')
     return dict(computed_at=datetime.now(timezone.utc), holdout_fraction=0.2, k=5, n_test_users=len(held), n_holdout=len(held_indices), results=results,
-                notes=[f'Highest hit-rate: {best["model"]} (ties resolved by display order).', f'Embedder: {(encoder or embedder).name}. Fixed random holdout; no tuning.', 'Only consenting seed users with at least five eligible seed likes are evaluated.'])
+                notes=notes)
 
 
 def main():

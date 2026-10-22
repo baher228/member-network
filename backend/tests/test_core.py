@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import pytest
-from app.services.recommender import Embedder, recommend, cf_matrix, hybrid_weight
+from app.services.recommender import Embedder, recommend, cf_matrix, hybrid_weight, normalize, short_snippet
 from app.services.intros import draft_intro
 from app.services.graph import graph
 from app.seed import synthetic_data
@@ -50,6 +50,33 @@ def test_exclusions_and_consent():
 def test_hybrid_weight_growth():
     assert hybrid_weight(0) == 0
     assert 0 < hybrid_weight(1) < hybrid_weight(10) < hybrid_weight(100) < 0.7
+    assert hybrid_weight(8) == pytest.approx(0.35)
+    assert hybrid_weight(24) == pytest.approx(0.525)
+
+
+def test_component_scaling():
+    assert normalize([0.3, 0.5, 0.7]).tolist() == pytest.approx([0, .5, 1])
+    assert normalize([0, 0]).tolist() == [0, 0]
+    assert normalize([.5, .5]).tolist() == [0, 0]
+    assert normalize([]).tolist() == []
+
+
+def test_short_quoted_snippets():
+    text = 'I need help with real-time speech recognition for community workshops in London.'
+    snippet = short_snippet(text)
+    assert len(snippet) <= 60 and snippet.endswith('…')
+    assert text.startswith(snippet[:-1] + ' ')
+    assert short_snippet('') == ''
+    assert short_snippet('speech tools') == 'speech tools'
+    assert short_snippet('x' * 100) == '…'
+    members = [member(1), member(2)]
+    members[0]['wants'] = text
+    members[1]['builds'] = text
+    result = recommend(1, members, [], encoder=Embedder('tf-idf'))
+    content = next(r for r in result['items'][0]['reasons'] if r['kind'] == 'content')
+    assert content['evidence']['your_want'] == snippet
+    assert content['evidence']['their_build'] == snippet
+    assert f'"{snippet}"' in content['text']
 
 
 def test_empty_and_cold_start():
