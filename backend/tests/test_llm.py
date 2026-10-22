@@ -1,4 +1,8 @@
 from types import SimpleNamespace
+import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 import httpx
 from openai import APIStatusError
@@ -7,6 +11,12 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.models import LLMHealth
 from app.services import llm, intros, threads
+
+
+@pytest.fixture(autouse=True)
+def fresh_call_state(monkeypatch):
+    monkeypatch.setattr(llm, '_last_call', None)
+    monkeypatch.setattr(llm, '_probe_started', False)
 
 
 @pytest.mark.parametrize('provider,key_name,model,base_url', [
@@ -32,7 +42,9 @@ def test_provider_selection_and_structured_drafting(monkeypatch, provider, key_n
     assert call['model'] == model
     assert ('response_format' in call) is (provider == 'grok')
     assert 'JSON' in call['messages'][0]['content']
-    assert llm.health() == dict(provider=provider, model=model, available=True, reason=None)
+    health = llm.health()
+    assert {key: health[key] for key in ('provider', 'model', 'available', 'reason', 'state')} == dict(provider=provider, model=model, available=True, reason=None, state='working')
+    assert health['last_call']['ok'] and health['last_call']['http_status'] == 200
     LLMHealth.model_validate(llm.health())
     monkeypatch.setattr(llm.settings, key_name, '')
     assert not llm.health()['available']
@@ -59,6 +71,8 @@ def test_invalid_json_still_validated_without_response_format(monkeypatch):
     result = intros.draft_intro({'reasons': []}, api_key='test-only', client=client)
     assert result['status'] == 'failed' and result['message'] is None
     assert 'ValidationError' in result['error']
+    assert llm.health()['last_call']['http_status'] == 200
+    assert not llm.health()['last_call']['ok']
 
 
 @pytest.mark.parametrize('status', [401, 402, 403, 404, 429, 500])
@@ -123,7 +137,8 @@ def test_intro_run_circuit_and_new_run_retries(monkeypatch, status, first_succes
             assert all(row['error'].startswith('Skipped LLM call: provider rejected an earlier request in this run') for row in outcomes[1 + int(first_success):])
         assert all('private diagnostic' not in (row['error'] or '') for row in outcomes)
         run = next(params for sql, params in writes if sql.startswith('UPDATE intro_runs'))
-        assert run['failed'] == 3 - int(first_success) and run['drafted'] == int(first_success) and run['skipped'] == 1 and run['llm_status'] == 'partial'
+        assert run['failed'] == 3 - int(first_success) and run['drafted'] == int(first_success) and run['skipped'] == 1
+        assert run['llm_status'] == ('partial' if first_success else 'unavailable')
 
 
 @pytest.mark.parametrize('error_type,status', [(llm.AuthenticationError, 401), (llm.PermissionDeniedError, 403), (llm.NotFoundError, 404)])
@@ -133,3 +148,103 @@ def test_sdk_equivalent_errors_without_status(error_type, status):
     circuit = llm.RunCircuitBreaker()
     circuit.record_failure(error)
     assert circuit.error.endswith(f'(HTTP {status})')
+
+
+def test_health_tracks_real_calls_but_not_missing_key_or_circuit_skips(monkeypatch):
+    monkeypatch.setattr(llm.settings, 'llm_provider', 'gemini')
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only')
+    assert llm.health()['state'] == 'not_checked' and llm.health()['last_call'] is None
+    intros.draft_intro({'reasons': []}, api_key='')
+    assert llm.health()['last_call'] is None
+    client = MagicMock()
+    client.chat.completions.create.return_value = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"message":"Would you both like to connect?"}'))])
+    intros.draft_intro({'reasons': []}, client=client)
+    health = llm.health()
+    assert health['state'] == 'working' and health['last_call']['error'] is None
+    assert datetime.fromisoformat(health['last_call']['at']).tzinfo == timezone.utc
+    health['last_call']['ok'] = False
+    assert llm.health()['last_call']['ok']
+    error = APIStatusError('private diagnostic', response=httpx.Response(402, request=httpx.Request('POST', 'https://example.com')), body=None)
+    client.chat.completions.create.side_effect = error
+    sample = threads.sample_chat()
+    threads.analyze_chat(sample['log_text'], now=sample['suggested_now'], client=client)
+    health = llm.health()
+    assert client.chat.completions.create.call_count == 2
+    assert health['state'] == 'unavailable' and health['available'] is True
+    assert health['last_call']['ok'] is False and health['last_call']['http_status'] == 402
+    assert health['reason'] == health['last_call']['error'] and 'private diagnostic' not in health['reason']
+    circuit = llm.RunCircuitBreaker()
+    circuit.record_failure(error)
+    intros.draft_intro({'reasons': []}, client=client, circuit=circuit)
+    assert llm.health() == health
+    client.chat.completions.create.side_effect = None
+    intros.draft_intro({'reasons': []}, client=client)
+    assert llm.health()['state'] == 'working'
+    monkeypatch.setattr(llm, 'get_api_key', lambda: '')
+    health = llm.health()
+    assert health['state'] == 'unavailable' and health['available'] is False
+    assert health['reason'] == 'GEMINI_API_KEY is not configured'
+    assert health['last_call']['ok'] is True
+
+
+def test_generation_failure_without_http_response(monkeypatch):
+    client = MagicMock()
+    client.chat.completions.create.side_effect = RuntimeError('private diagnostic')
+    intros.draft_intro({'reasons': []}, api_key='test-only', client=client)
+    assert llm.health()['last_call']['http_status'] is None
+    assert llm.health()['last_call']['error'] == 'LLM call or structured response failed: RuntimeError'
+
+
+@pytest.mark.parametrize('drafted,failed,key,expected', [
+    (0, 0, True, 'unavailable'), (0, 2, True, 'unavailable'),
+    (1, 2, True, 'partial'), (2, 0, True, 'available'),
+    (2, 0, False, 'unavailable'), (1, 2, False, 'unavailable')])
+def test_run_availability_counts(monkeypatch, drafted, failed, key, expected):
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only' if key else '')
+    assert llm.run_status(drafted, failed) == expected
+
+
+def test_probe_at_most_once_even_with_concurrent_startup_calls(monkeypatch):
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only')
+    client = MagicMock()
+    client.chat.completions.create.return_value = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"ok":true}'))])
+    monkeypatch.setattr(llm, 'create_client', lambda *args: client)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda _: llm.probe_once(), range(8)))
+    assert client.chat.completions.create.call_count == 1
+    assert llm.health()['state'] == 'working'
+
+
+def test_failed_probe_records_result_once_and_missing_key_does_not_probe(monkeypatch):
+    client = MagicMock()
+    monkeypatch.setattr(llm, 'create_client', lambda *args: client)
+    monkeypatch.setattr(llm, 'get_api_key', lambda: '')
+    llm.probe_once()
+    assert llm.health()['last_call'] is None
+    client.chat.completions.create.assert_not_called()
+    monkeypatch.setattr(llm, 'get_api_key', lambda: 'test-only')
+    client.chat.completions.create.side_effect = RuntimeError('private diagnostic')
+    llm.probe_once()
+    llm.probe_once()
+    assert client.chat.completions.create.call_count == 1
+    assert llm.health()['last_call']['error'].endswith('RuntimeError')
+    assert llm.health()['state'] == 'unavailable'
+
+
+def test_startup_does_not_wait_for_probe(monkeypatch):
+    from app import main
+    started, release = threading.Event(), threading.Event()
+    def probe():
+        started.set()
+        release.wait(timeout=2)
+    monkeypatch.setattr(main, 'probe_once', probe)
+    monkeypatch.setattr(main, 'check_llm', lambda: None)
+    monkeypatch.setattr(main, 'BackgroundScheduler', MagicMock())
+    async def run():
+        async with main.lifespan(main.app):
+            try:
+                assert await asyncio.to_thread(started.wait, 1)
+                assert not release.is_set()
+            finally:
+                release.set()
+    asyncio.run(run())

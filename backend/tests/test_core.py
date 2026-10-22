@@ -39,6 +39,27 @@ def test_accept_weight():
     assert matrix[0, 1] == 2
 
 
+def test_single_co_liker_is_one_person():
+    result = recommend(1, [member(i) for i in range(1, 5)],
+                       [row(1, 2), row(3, 2), row(3, 4)], encoder=Embedder('tf-idf'))
+    target = next(item for item in result['items'] if item['member']['id'] == 4)
+    reason = next(r for r in target['reasons'] if r['kind'] == 'cf')
+    assert reason['evidence']['co_likers'] == 1
+    assert '1 person who liked them' in reason['text']
+
+
+@pytest.mark.parametrize('count', [0, 1, 2])
+def test_popularity_count_grammar(count):
+    members = [member(i) for i in range(1, 5)]
+    for m in members:
+        m.update(wants='unrelatedxyz', builds='separateabc', speaker_topics='')
+    result = recommend(1, members, [row(3, 2), row(4, 2)][:count], encoder=Embedder('tf-idf'))
+    target = next(item for item in result['items'] if item['member']['id'] == 2)
+    reason = next(r for r in target['reasons'] if r['kind'] == 'popularity')
+    noun = 'connection;' if count == 1 else 'connections;'
+    assert f'{count} positive community {noun}' in reason['text']
+
+
 def test_exclusions_and_consent():
     members = [member(i) for i in range(1, 8)]
     members[3]['consent_intros'] = False

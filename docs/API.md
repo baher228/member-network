@@ -20,7 +20,9 @@ SpeakerCandidate = { kind:"member"|"external", member_id:int|null, name:str, han
   match_reasons:[str], evidence:[Evidence] }
 
 ## Endpoints
-GET  /health -> { db:bool, llm:{provider:"gemini"|"grok", available:bool, model:str|null, reason:str|null}, n_members:int, n_interactions:int }
+GET  /health -> { db:bool, llm:{provider:"gemini"|"grok", available:bool, model:str|null, reason:str|null,
+       state:"not_checked"|"working"|"unavailable",
+       last_call:{ok:bool, at:iso, http_status:int|null, error:str|null}|null}, n_members:int, n_interactions:int }
 POST /members (questionnaire body: Member minus id/is_seed/created_at) -> Member   (422 on invalid)
 POST /demo/reset -> { seed_members_restored:int, seed_members_created:int,
        seed_interactions_restored:int, interactions_deleted:int, interactions_created:int,
@@ -66,6 +68,19 @@ relationship counts. There is no reseeding of sequences or deletion of members.
 ### LLM availability
 Health's `llm.provider` is additive. `available` means the selected provider's key is
 configured, not that its credits/model are usable. Gemini is the default; Grok is optional.
+`state` is `unavailable` if the key is missing or the last generation failed, `working`
+after a successful validated generation, and `not_checked` before any generation.
+`last_call` records the most recently completed real generation attempt from intros,
+threads or the startup probe, in process-wide memory; it resets to null on restart.
+Circuit-breaker skips and missing-key shortcuts do not overwrite it. `http_status` is
+200 for successful HTTP responses (including invalid structured output), the provider's
+status on HTTP errors, or null for failures with no HTTP response. Errors/reasons are sanitized.
+One small startup probe runs in the background at most once per process when a key is
+configured; it never blocks startup or creates intro/thread rows.
+
+Both intro and thread run `llm_status` use actual counts: no key or no drafted outcomes
+means `unavailable`; drafted plus failed is `partial`; drafted without failures is
+`available`. Skipped/ineligible members/threads do not count as drafted outcomes.
 
 ### Speaker result selection
 Speaker results keep the same flat `items` array, with at most 30 candidates sorted by score.

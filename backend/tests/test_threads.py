@@ -60,8 +60,16 @@ def test_rules(last, participants, day, worth, question, unanswered):
     assert 0 <= result.score <= 1
     if not worth:
         assert result.score == 0
-    assert any('days ago' in reason for reason in result.reasons)
+    assert any('days ago' in reason or 'day ago' in reason for reason in result.reasons)
     assert all('..' not in reason for reason in result.reasons)
+
+
+def test_single_message_participant_and_day_grammar():
+    messages, _, _ = threads.parse_chat(discord('Any ideas?', day=19))
+    result = threads.decide_thread('test', messages, NOW, silence_days=1)
+    assert result.reasons[0] == 'Last message 1.0 day ago; revival requires more than 1 day of silence.'
+    assert result.reasons[1] == '1 message from 1 distinct participant.'
+    assert 'Last message 1.0 day ago was an unanswered question' in result.reasons[2]
 
 
 def test_future_time_and_default_real_now():
@@ -128,7 +136,11 @@ def test_llm_call_failure_and_skipped_threads_never_call():
     assert result.threads[0].status == 'skipped' and not result.threads[0].llm_used
 
 
-def test_persistence_records_result_id_and_log(monkeypatch):
+@pytest.mark.parametrize('statuses,key,expected', [
+    (['drafted'], False, 'unavailable'), (['failed'], True, 'unavailable'),
+    (['drafted', 'failed'], True, 'partial'), (['drafted'], True, 'available'),
+    (['skipped'], True, 'unavailable'), ([], True, 'unavailable')])
+def test_persistence_records_result_id_and_log(monkeypatch, statuses, key, expected):
     writes = []
     class Connection:
         def execute(self, sql, params):
@@ -140,10 +152,13 @@ def test_persistence_records_result_id_and_log(monkeypatch):
             yield Connection()
     monkeypatch.setattr(threads, 'engine', Engine())
     monkeypatch.setattr(threads.settings, 'llm_provider', 'gemini')
-    monkeypatch.setattr(threads.settings, 'gemini_api_key', '')
-    result = threads.persist_analysis(threads.analyze_chat(discord('Any ideas?'), now=NOW, api_key=''))
+    monkeypatch.setattr(threads.settings, 'gemini_api_key', 'test-only' if key else '')
+    result = threads.analyze_chat(discord('Any ideas?'), now=NOW, api_key='')
+    template = result.threads[0]
+    result.threads = [template.model_copy(update={'status': status}) for status in statuses]
+    result = threads.persist_analysis(result)
     assert result.run_id == 23
-    assert writes[0][1]['llm'] == 'unavailable'
+    assert writes[0][1]['llm'] == expected
     stored = json.loads(writes[-1][1]['result'])
     assert stored['run_id'] == 23 and stored['log'][-1]['step'] == 'persist'
 

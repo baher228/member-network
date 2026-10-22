@@ -178,11 +178,20 @@ class DemoResetResult(BaseModel):
     intro_runs_deleted: int
 
 
+class LLMCallResult(BaseModel):
+    ok: bool
+    at: datetime
+    http_status: int | None
+    error: str | None
+
+
 class LLMHealth(BaseModel):
     provider: Literal['gemini', 'grok']
     available: bool
     model: str | None
     reason: str | None
+    state: Literal['not_checked', 'working', 'unavailable'] = 'not_checked'
+    last_call: LLMCallResult | None = None
 
 
 class Health(BaseModel):

@@ -126,14 +126,17 @@ def recommend(member_id, members, interactions, existing_intros=(), k=10, encode
             co_likers = int(np.count_nonzero((matrix[:, t] > 0) & np.any(matrix[:, contributing] > 0, axis=1)))
             names = [{'id': members[j]['id'], 'name': members[j]['name']} for j in contributing]
             target_name = target['name'].rstrip('.')
-            reasons.append(dict(kind='cf', text=f'You liked {" and ".join(n["name"] for n in names)}; {co_likers} people who liked them also liked/connected with {target_name}.', weight=weight, evidence=dict(liked=names, co_likers=co_likers)))
+            people = 'person' if co_likers == 1 else 'people'
+            reasons.append(dict(kind='cf', text=f'You liked {" and ".join(n["name"] for n in names)}; {co_likers} {people} who liked them also liked/connected with {target_name}.', weight=weight, evidence=dict(liked=names, co_likers=co_likers)))
         if raw_content[i] > 0.01:
             want, build = short_snippet(user['wants']), short_snippet(target['builds'])
             reasons.append(dict(kind='content', text=f'{target["name"]} builds: "{build}"; you want: "{want}".', weight=1-weight, evidence=dict(your_want=want, their_build=build, similarity=float(raw_content[i]))))
         if raw_cf[t] < 0.01 and raw_content[i] < 0.05:
             if mode == 'hybrid':
                 scores[i] = 0.05 * popularity[i]
-            reasons.append(dict(kind='popularity', text=f'{target["name"]} has {int(np.count_nonzero(matrix[:, t]))} positive community connections; limited personal signal.', weight=0.05, evidence={'positive_members': int(np.count_nonzero(matrix[:, t]))}))
+            positive_members = int(np.count_nonzero(matrix[:, t]))
+            connections = 'connection' if positive_members == 1 else 'connections'
+            reasons.append(dict(kind='popularity', text=f'{target["name"]} has {positive_members} positive community {connections}; limited personal signal.', weight=0.05, evidence={'positive_members': positive_members}))
         items.append(dict(member=target, score=float(scores[i]), cf_score=float(cf[i]), content_score=float(content[i]), reasons=reasons))
     items.sort(key=lambda item: (-item['score'], item['member']['id']))
     info['embedder'] = encoder.name

@@ -9,6 +9,7 @@ from app import db, eval as evaluation, migrate
 from app.routes import api
 from app.seed import synthetic_data
 from app.services import demo
+from app.services.recommender import Embedder, recommend
 
 
 @pytest.fixture
@@ -152,3 +153,24 @@ def test_demo_reset_response_shape(monkeypatch):
     app.include_router(api.router)
     response = TestClient(app).post('/api/demo/reset')
     assert response.status_code == 200 and response.json() == expected
+
+
+def test_recommendations_immediately_exclude_new_like_and_pass(database, monkeypatch):
+    demo.reset_demo()
+    monkeypatch.setattr(db, 'engine', database)
+    encoder = Embedder('tf-idf')
+    monkeypatch.setattr(api, 'recommend', lambda *args, **kwargs: recommend(*args, encoder=encoder, **kwargs))
+    app = FastAPI()
+    app.include_router(api.router)
+    client = TestClient(app)
+    url = '/api/members/75/recommendations?k=100'
+    initial = client.get(url)
+    assert initial.status_code == 200
+    targets = [item['member']['id'] for item in initial.json()['items'][:2]]
+    assert len(targets) == 2
+    for kind, target in zip(('like', 'pass'), targets):
+        response = client.post('/api/interactions', json=dict(member_id=75, target_id=target, kind=kind))
+        assert response.status_code == 200
+    refreshed = client.get(url)
+    assert refreshed.status_code == 200
+    assert set(targets).isdisjoint(item['member']['id'] for item in refreshed.json()['items'])

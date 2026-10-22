@@ -77,13 +77,12 @@ def _run_intros(trigger):
                 failed += 1
             else:
                 drafted += 1
-        llm_status = 'unavailable' if not llm.get_api_key() else ('partial' if failed else 'available')
         notes = 'Delivery is simulated: successfully generated drafts are marked sent; no messages were actually delivered.'
     except Exception as exc:
-        llm_status = 'partial' if llm.get_api_key() else 'unavailable'
         notes = f'Run interrupted: {type(exc).__name__}. Delivery is simulated.'
         raise
     finally:
+        llm_status = llm.run_status(drafted, failed)
         if pending:
             execute('''INSERT INTO intros(run_id,member_id,target_id,score,reasons,message,llm_used,status,error)
                 VALUES (:run_id,:member_id,:target_id,:score,CAST(:reasons AS jsonb),:message,:llm_used,:status,:error)''', pending)

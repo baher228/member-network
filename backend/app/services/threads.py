@@ -100,10 +100,11 @@ def decide_thread(thread_id, messages, now, silence_days=None):
     # "Thanks, can anyone help?" is still open, not a terminal thank-you.
     closed = bool(CLOSING.search(last.message)) and not (question or offer)
     worth = days > threshold and (participants >= 2 or question or offer) and not closed
-    reasons = [f'Last message {days:.1f} days ago; revival requires more than {threshold:g} days of silence.',
-               f'{len(messages)} messages from {participants} distinct participants.']
+    silence = f'{days:.1f} {"day" if round(days, 1) == 1 else "days"} ago'
+    reasons = [f'Last message {silence}; revival requires more than {threshold:g} {"day" if threshold == 1 else "days"} of silence.',
+               f'{len(messages)} {"message" if len(messages) == 1 else "messages"} from {participants} distinct {"participant" if participants == 1 else "participants"}.']
     if question or offer:
-        reasons.append(f'Last message {days:.1f} days ago was an unanswered {"question" if question else "open offer"} from {last.author.rstrip(".")}.')
+        reasons.append(f'Last message {silence} was an unanswered {"question" if question else "open offer"} from {last.author.rstrip(".")}.')
     if closed:
         reasons.append('Last message is a closing/thank-you with no new question or offer; leave it closed.')
     if days <= threshold:
@@ -171,7 +172,8 @@ def analyze_chat(log_text, now=None, api_key=None, client=None):
 
 
 def persist_analysis(result):
-    llm_status = 'unavailable' if not llm.get_api_key() else ('partial' if any(t.status == 'failed' for t in result.threads) else 'available')
+    llm_status = llm.run_status(sum(t.status == 'drafted' for t in result.threads),
+                                sum(t.status == 'failed' for t in result.threads))
     with engine.begin() as conn:
         run_id = conn.execute(text('''INSERT INTO thread_runs(n_threads,n_revive,llm_status,result)
                     VALUES (:n,:revive,:llm,CAST(:result AS jsonb)) RETURNING id'''),

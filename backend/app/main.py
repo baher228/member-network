@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.routes import api, threads
 from app.services.intros import run_intros
-from app.services.llm import check_llm
+from app.services.llm import check_llm, probe_once
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,7 +20,9 @@ async def lifespan(app):
                       coalesce=True, misfire_grace_time=3600)
     scheduler.start()
     api.scheduler = scheduler
+    probe = asyncio.create_task(asyncio.to_thread(probe_once))
     yield
+    probe.cancel()
     scheduler.shutdown(wait=False)
     api.scheduler = None
 
