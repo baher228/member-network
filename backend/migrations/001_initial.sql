@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS network;
+SET LOCAL search_path=network;
 DO $$ BEGIN
  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
@@ -40,12 +42,12 @@ ALTER TABLE intro_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE intros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence_cache ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON members,interactions,intro_runs,intros,evidence_cache FROM anon,authenticated;
-GRANT USAGE ON SCHEMA public TO anon,authenticated,service_role;
+GRANT USAGE ON SCHEMA network TO anon,authenticated,service_role;
 GRANT INSERT(name,handle,github,devpost,builds,wants,speaker_topics,consent_intros,consent_speaker) ON members TO anon;
 GRANT USAGE ON SEQUENCE members_id_seq TO anon;
 DROP POLICY IF EXISTS questionnaire_insert ON members;
 CREATE POLICY questionnaire_insert ON members FOR INSERT TO anon WITH CHECK (is_seed=false);
 GRANT ALL ON members,interactions,intro_runs,intros,evidence_cache TO service_role;
-GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA network TO service_role;
 CREATE INDEX IF NOT EXISTS interactions_member_idx ON interactions(member_id);
 CREATE INDEX IF NOT EXISTS intros_members_idx ON intros(member_id,target_id);

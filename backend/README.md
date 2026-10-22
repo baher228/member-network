@@ -21,7 +21,23 @@ python -m app.seed
 
 Start existing database: `docker start mn-postgres`. One backend start command from repo root: `backend/run.sh`.
 The script applies pending migrations and serves port 8000. API docs: `/docs`; API prefix: `/api`.
-Local database credentials above are development-only defaults. For Supabase set `DATABASE_URL` to an owner/service-role connection; plain `postgresql://` and `postgres://` URLs work.
+Local database credentials above are development-only defaults. For Supabase set `DATABASE_URL` to an owner connection; plain `postgresql://` and `postgres://` URLs work.
+
+All connections use `search_path=network`, locally and on Supabase. A connection hook also
+sets it explicitly because session poolers may ignore startup options. Migrations create this
+dedicated schema before their `network.schema_migrations` bookkeeping table. Application
+tables, sequences, indexes and policies stay in `network`; nothing is migrated from or
+changed in `public`. Existing local demo data in `public` is left untouched. On a fresh
+`network` schema, run migrations and seed explicitly before starting the API.
+
+Use the Supavisor **session** pooler on port 5432 when the direct IPv6 host is unreachable:
+`postgresql+psycopg://postgres.<project-ref>:<url-encoded-password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require`
+(some regions use `aws-1`). Store this URL only in the ignored `backend/.env`, along with
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY`. The latter two are
+API keys, not database passwords; the SQL backend uses `DATABASE_URL`. Existing Supabase
+roles are reused; only missing roles are created for local PostgreSQL.
+For a separate verification server without changing port 8000, run from `backend`:
+`.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001`.
 
 `backend/.env` is optional and ignored by git; `.env.example` lists environment names only. Configure `XAI_API_KEY` and `GROK_MODEL` to enable Grok. Without a key, intros remain drafted with **null messages**, never canned prose. Generated messages are marked sent for **simulated delivery only**. No email/SMS is sent. Startup lists available xAI model IDs when configured. API call errors produce failed intros with sanitized error types.
 

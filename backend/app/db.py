@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from app.config import settings
 
 url = settings.database_url
@@ -6,7 +6,18 @@ if url.startswith('postgres://'):
     url = url.replace('postgres://', 'postgresql+psycopg://', 1)
 elif url.startswith('postgresql://'):
     url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
-engine = create_engine(url, pool_pre_ping=True)
+engine = create_engine(url, pool_pre_ping=True, connect_args={'options': '-csearch_path=network', 'connect_timeout': 5})
+
+
+@event.listens_for(engine, 'connect')
+def set_network_search_path(connection, record):
+    autocommit = connection.autocommit
+    try:
+        connection.autocommit = True
+        with connection.cursor() as cursor:
+            cursor.execute('SET SESSION search_path TO network')
+    finally:
+        connection.autocommit = autocommit
 
 
 def rows(sql, params=None):
