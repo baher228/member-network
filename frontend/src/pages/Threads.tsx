@@ -23,7 +23,7 @@ function ThreadCard({ t }: { t: ThreadResult }) {
       {t.worth_reviving && (
         <div className="mt-3">
           {t.nudge
-            ? <div className="rounded-lg border border-line bg-bg p-3 text-sm leading-relaxed whitespace-pre-wrap">{t.nudge}<div className="label mt-2">{t.llm_used ? 'Drafted by Grok from the facts above' : 'Rule-based'}</div></div>
+            ? <div className="rounded-lg border border-line bg-bg p-3 text-sm leading-relaxed whitespace-pre-wrap">{t.nudge}<div className="label mt-2">{t.llm_used ? 'Drafted by the LLM from the facts above' : 'Rule-based'}</div></div>
             : <div className="rounded-lg border border-dashed border-line p-3 text-sm text-muted">No nudge drafted — LLM unavailable, rule-only reasoning.</div>}
         </div>
       )}
@@ -68,7 +68,7 @@ export default function Threads() {
       </Card>
       {err && <div className="mb-4"><ErrorBox error={err} /></div>}
       {busy && <Loading text="Parsing and scoring threads" />}
-      {!busy && !res && !err && <Empty title="Paste an export or load the sample">Rules in code decide which threads died with an open question or offer; Grok only drafts the nudge.</Empty>}
+      {!busy && !res && !err && <Empty title="Paste an export or load the sample">Rules in code decide which threads died with an open question or offer; the LLM only drafts the nudge.</Empty>}
       {res && !busy && (
         <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           <div>

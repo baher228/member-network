@@ -66,7 +66,7 @@ export default function Questionnaire() {
             <Field label="GitHub username" hint="Used for public evidence (repos, stars)"><input className="input font-mono" value={f.github} onChange={set('github')} placeholder="octocat" /></Field>
             <Field label="Devpost username"><input className="input font-mono" value={f.devpost} onChange={set('devpost')} placeholder="ada" /></Field>
           </div>
-          <Field label="What do you build?"><textarea required rows={3} className="input" value={f.builds} onChange={set('builds')} placeholder="Voice agents for customer support, built on Whisper + Grok" /></Field>
+          <Field label="What do you build?"><textarea required rows={3} className="input" value={f.builds} onChange={set('builds')} placeholder="Voice agents for customer support, built on Whisper + an LLM" /></Field>
           <Field label="What do you want help with / who do you want to meet?"><textarea required rows={3} className="input" value={f.wants} onChange={set('wants')} placeholder="Someone who knows payments infra; a designer for onboarding" /></Field>
           <Field label="Topics you could speak on" hint="Comma-separated. Leave blank if none."><input className="input" value={f.speaker_topics} onChange={set('speaker_topics')} placeholder="speech recognition, evals" /></Field>
           <div className="space-y-2 rounded-lg border border-line p-4">

@@ -37,7 +37,7 @@ function IntroCard({ intro, onRespond, busy }: { intro: Intro; onRespond: (r: 'a
       </div>
       <div className="mt-3">
         {intro.message
-          ? <div className="rounded-lg border border-line bg-bg p-3 text-sm leading-relaxed whitespace-pre-wrap">{intro.message}<div className="label mt-2">{intro.llm_used ? 'Written by Grok from the reasons below' : 'Rule-based'}</div></div>
+          ? <div className="rounded-lg border border-line bg-bg p-3 text-sm leading-relaxed whitespace-pre-wrap">{intro.message}<div className="label mt-2">{intro.llm_used ? 'Written by the LLM from the reasons below' : 'Rule-based'}</div></div>
           : <div className="rounded-lg border border-dashed border-line p-3 text-sm text-muted">No message — LLM unavailable, rule-only reasoning. The structured reasons below are what the intro is based on.</div>}
       </div>
       {intro.error && <div className="mt-2 font-mono text-xs text-bad/90">Error · {intro.error}</div>}

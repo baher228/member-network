@@ -48,7 +48,7 @@ export function HealthBar() {
           <>
             <Badge tone={h.db ? 'ok' : 'bad'}>DB {h.db ? 'connected' : 'down'}</Badge>
             {h.llm.available
-              ? <Badge tone="ok">Grok · {h.llm.model}</Badge>
+              ? <Badge tone="ok" title="Key configured; individual calls can still fail — see run logs">{h.llm.provider === 'grok' ? 'Grok' : 'Gemini'} key set · {h.llm.model}</Badge>
               : <Badge tone="warn" title={h.llm.reason ?? undefined}>LLM unavailable – rule-only reasoning</Badge>}
             <span className="label">{h.n_members} members · {h.n_interactions} interactions</span>
             {h.scheduler_next_run && <span className="label sm:ml-auto">Next weekly run {fmtTime(h.scheduler_next_run)}</span>}
