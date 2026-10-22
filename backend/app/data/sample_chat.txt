@@ -1,0 +1,152 @@
+2026-10-08 18:00 | #voice-latency | Maya R.: Fictional demo conversation: exploring call-centre transcription. All people, projects and examples here are invented.
+2026-10-08 18:01 | #voice-latency | Theo R.: I have been prototyping streaming audio chunks too.
+2026-10-08 18:02 | #voice-latency | Maya R.: My current snag is that p95 latency jumps above 900ms.
+2026-10-08 18:03 | #voice-latency | Theo R.: Could we isolate it with a toy audio benchmark?
+2026-10-08 18:04 | #voice-latency | Maya R.: Yes, I made a toy audio benchmark with no private data.
+2026-10-08 18:05 | #voice-latency | Theo R.: Please keep the input small enough to reproduce locally.
+2026-10-08 18:06 | #voice-latency | Maya R.: The first version of streaming audio chunks only covers the happy path.
+2026-10-08 18:07 | #voice-latency | Theo R.: I would separate correctness from performance measurements.
+2026-10-08 18:08 | #voice-latency | Maya R.: I wrote down the expected result before changing the implementation.
+2026-10-08 18:09 | #voice-latency | Theo R.: For call-centre transcription, a small comparison would be useful.
+2026-10-08 18:10 | #voice-latency | Maya R.: The baseline is saved alongside the fixture now.
+2026-10-08 18:11 | #voice-latency | Theo R.: I can read the approach here, but have not run the code myself.
+2026-10-08 18:12 | #voice-latency | Maya R.: I tried a second example; p95 latency jumps above 900ms there as well.
+2026-10-08 18:13 | #voice-latency | Theo R.: That suggests the input shape is not the only variable.
+2026-10-08 18:14 | #voice-latency | Maya R.: I will keep the test case deterministic for the demo.
+2026-10-08 18:15 | #voice-latency | Theo R.: The notes about a toy audio benchmark are clear.
+2026-10-08 18:16 | #voice-latency | Maya R.: There is no production data or real user information in this experiment.
+2026-10-08 18:17 | #voice-latency | Theo R.: I am heading off for now; leaving the notes in this thread.
+2026-10-08 18:18 | #voice-latency | Maya R.: Does anyone know how to keep speech-to-text latency below 300ms on a CPU?
+2026-10-06 18:00 | #gpu-pairing | Priya R.: Fictional demo conversation: exploring inference cost dashboards. All people, projects and examples here are invented.
+2026-10-06 18:01 | #gpu-pairing | Arun R.: I have been prototyping GPU cost attribution too.
+2026-10-06 18:02 | #gpu-pairing | Priya R.: My current snag is that idle time is missing from the totals.
+2026-10-06 18:03 | #gpu-pairing | Arun R.: Could we isolate it with a small CSV of invented usage?
+2026-10-06 18:04 | #gpu-pairing | Priya R.: Yes, I made a small CSV of invented usage with no private data.
+2026-10-06 18:05 | #gpu-pairing | Arun R.: Please keep the input small enough to reproduce locally.
+2026-10-06 18:06 | #gpu-pairing | Priya R.: The first version of GPU cost attribution only covers the happy path.
+2026-10-06 18:07 | #gpu-pairing | Arun R.: I would separate correctness from performance measurements.
+2026-10-06 18:08 | #gpu-pairing | Priya R.: I wrote down the expected result before changing the implementation.
+2026-10-06 18:09 | #gpu-pairing | Arun R.: For inference cost dashboards, a small comparison would be useful.
+2026-10-06 18:10 | #gpu-pairing | Priya R.: The baseline is saved alongside the fixture now.
+2026-10-06 18:11 | #gpu-pairing | Arun R.: I can read the approach here, but have not run the code myself.
+2026-10-06 18:12 | #gpu-pairing | Priya R.: I tried a second example; idle time is missing from the totals there as well.
+2026-10-06 18:13 | #gpu-pairing | Arun R.: That suggests the input shape is not the only variable.
+2026-10-06 18:14 | #gpu-pairing | Priya R.: I will keep the test case deterministic for the demo.
+2026-10-06 18:15 | #gpu-pairing | Arun R.: The notes about a small CSV of invented usage are clear.
+2026-10-06 18:16 | #gpu-pairing | Priya R.: There is no production data or real user information in this experiment.
+2026-10-06 18:17 | #gpu-pairing | Arun R.: I am heading off for now; leaving the notes in this thread.
+2026-10-06 18:18 | #gpu-pairing | Priya R.: Anyone want to pair on GPU cost attribution next week? I can share my toy notebook.
+2026-10-19 18:00 | #climate-pilot | Lena R.: Fictional demo conversation: exploring heat-pump forecasting. All people, projects and examples here are invented.
+2026-10-19 18:01 | #climate-pilot | Jonah R.: I have been prototyping weather feature joins too.
+2026-10-19 18:02 | #climate-pilot | Lena R.: My current snag is that the timestamps mix UTC and local time.
+2026-10-19 18:03 | #climate-pilot | Jonah R.: Could we isolate it with a synthetic weather fixture?
+2026-10-19 18:04 | #climate-pilot | Lena R.: Yes, I made a synthetic weather fixture with no private data.
+2026-10-19 18:05 | #climate-pilot | Jonah R.: Please keep the input small enough to reproduce locally.
+2026-10-19 18:06 | #climate-pilot | Lena R.: The first version of weather feature joins only covers the happy path.
+2026-10-19 18:07 | #climate-pilot | Jonah R.: I would separate correctness from performance measurements.
+2026-10-19 18:08 | #climate-pilot | Lena R.: I wrote down the expected result before changing the implementation.
+2026-10-19 18:09 | #climate-pilot | Jonah R.: For heat-pump forecasting, a small comparison would be useful.
+2026-10-19 18:10 | #climate-pilot | Lena R.: The baseline is saved alongside the fixture now.
+2026-10-19 18:11 | #climate-pilot | Jonah R.: I can read the approach here, but have not run the code myself.
+2026-10-19 18:12 | #climate-pilot | Lena R.: I tried a second example; the timestamps mix UTC and local time there as well.
+2026-10-19 18:13 | #climate-pilot | Jonah R.: That suggests the input shape is not the only variable.
+2026-10-19 18:14 | #climate-pilot | Lena R.: I will keep the test case deterministic for the demo.
+2026-10-19 18:15 | #climate-pilot | Jonah R.: The notes about a synthetic weather fixture are clear.
+2026-10-19 18:16 | #climate-pilot | Lena R.: There is no production data or real user information in this experiment.
+2026-10-19 18:17 | #climate-pilot | Jonah R.: I am heading off for now; leaving the notes in this thread.
+2026-10-19 18:18 | #climate-pilot | Lena R.: I am trying the hourly join this afternoon and will post the comparison tomorrow.
+2026-10-05 18:00 | #payments-fixed | Amara R.: Fictional demo conversation: exploring market payment receipts. All people, projects and examples here are invented.
+2026-10-05 18:01 | #payments-fixed | Felix R.: I have been prototyping duplicate receipt handling too.
+2026-10-05 18:02 | #payments-fixed | Amara R.: My current snag is that a webhook is processed twice.
+2026-10-05 18:03 | #payments-fixed | Felix R.: Could we isolate it with a fake webhook payload?
+2026-10-05 18:04 | #payments-fixed | Amara R.: Yes, I made a fake webhook payload with no private data.
+2026-10-05 18:05 | #payments-fixed | Felix R.: Please keep the input small enough to reproduce locally.
+2026-10-05 18:06 | #payments-fixed | Amara R.: The first version of duplicate receipt handling only covers the happy path.
+2026-10-05 18:07 | #payments-fixed | Felix R.: I would separate correctness from performance measurements.
+2026-10-05 18:08 | #payments-fixed | Amara R.: I wrote down the expected result before changing the implementation.
+2026-10-05 18:09 | #payments-fixed | Felix R.: For market payment receipts, a small comparison would be useful.
+2026-10-05 18:10 | #payments-fixed | Amara R.: The baseline is saved alongside the fixture now.
+2026-10-05 18:11 | #payments-fixed | Felix R.: I can read the approach here, but have not run the code myself.
+2026-10-05 18:12 | #payments-fixed | Amara R.: I tried a second example; a webhook is processed twice there as well.
+2026-10-05 18:13 | #payments-fixed | Felix R.: That suggests the input shape is not the only variable.
+2026-10-05 18:14 | #payments-fixed | Amara R.: I will keep the test case deterministic for the demo.
+2026-10-05 18:15 | #payments-fixed | Felix R.: The notes about a fake webhook payload are clear.
+2026-10-05 18:16 | #payments-fixed | Amara R.: There is no production data or real user information in this experiment.
+2026-10-05 18:17 | #payments-fixed | Felix R.: I am heading off for now; leaving the notes in this thread.
+2026-10-05 18:18 | #payments-fixed | Amara R.: That fixed it. Solved, thanks!
+2026-10-10 18:00 | #health-accessibility | Noor R.: Fictional demo conversation: exploring medication reminder accessibility. All people, projects and examples here are invented.
+2026-10-10 18:01 | #health-accessibility | Oscar R.: I have been prototyping screen-reader announcements too.
+2026-10-10 18:02 | #health-accessibility | Noor R.: My current snag is that the reminder is announced twice.
+2026-10-10 18:03 | #health-accessibility | Oscar R.: Could we isolate it with an anonymised mock screen?
+2026-10-10 18:04 | #health-accessibility | Noor R.: Yes, I made an anonymised mock screen with no private data.
+2026-10-10 18:05 | #health-accessibility | Oscar R.: Please keep the input small enough to reproduce locally.
+2026-10-10 18:06 | #health-accessibility | Noor R.: The first version of screen-reader announcements only covers the happy path.
+2026-10-10 18:07 | #health-accessibility | Oscar R.: I would separate correctness from performance measurements.
+2026-10-10 18:08 | #health-accessibility | Noor R.: I wrote down the expected result before changing the implementation.
+2026-10-10 18:09 | #health-accessibility | Oscar R.: For medication reminder accessibility, a small comparison would be useful.
+2026-10-10 18:10 | #health-accessibility | Noor R.: The baseline is saved alongside the fixture now.
+2026-10-10 18:11 | #health-accessibility | Oscar R.: I can read the approach here, but have not run the code myself.
+2026-10-10 18:12 | #health-accessibility | Noor R.: I tried a second example; the reminder is announced twice there as well.
+2026-10-10 18:13 | #health-accessibility | Oscar R.: That suggests the input shape is not the only variable.
+2026-10-10 18:14 | #health-accessibility | Noor R.: I will keep the test case deterministic for the demo.
+2026-10-10 18:15 | #health-accessibility | Oscar R.: The notes about an anonymised mock screen are clear.
+2026-10-10 18:16 | #health-accessibility | Noor R.: There is no production data or real user information in this experiment.
+2026-10-10 18:17 | #health-accessibility | Oscar R.: I am heading off for now; leaving the notes in this thread.
+2026-10-10 18:18 | #health-accessibility | Noor R.: How should I test live-region announcements with a screen reader without doubling the reminder?
+2026-10-04 18:00 | #design-review-offer | Iris R.: Fictional demo conversation: exploring volunteer onboarding. All people, projects and examples here are invented.
+2026-10-04 18:01 | #design-review-offer | Ravi R.: I have been prototyping a plain-language signup flow too.
+2026-10-04 18:02 | #design-review-offer | Iris R.: My current snag is that the first form asks too many questions.
+2026-10-04 18:03 | #design-review-offer | Ravi R.: Could we isolate it with a fictional signup wireframe?
+2026-10-04 18:04 | #design-review-offer | Iris R.: Yes, I made a fictional signup wireframe with no private data.
+2026-10-04 18:05 | #design-review-offer | Ravi R.: Please keep the input small enough to reproduce locally.
+2026-10-04 18:06 | #design-review-offer | Iris R.: The first version of a plain-language signup flow only covers the happy path.
+2026-10-04 18:07 | #design-review-offer | Ravi R.: I would separate correctness from performance measurements.
+2026-10-04 18:08 | #design-review-offer | Iris R.: I wrote down the expected result before changing the implementation.
+2026-10-04 18:09 | #design-review-offer | Ravi R.: For volunteer onboarding, a small comparison would be useful.
+2026-10-04 18:10 | #design-review-offer | Iris R.: The baseline is saved alongside the fixture now.
+2026-10-04 18:11 | #design-review-offer | Ravi R.: I can read the approach here, but have not run the code myself.
+2026-10-04 18:12 | #design-review-offer | Iris R.: I tried a second example; the first form asks too many questions there as well.
+2026-10-04 18:13 | #design-review-offer | Ravi R.: That suggests the input shape is not the only variable.
+2026-10-04 18:14 | #design-review-offer | Iris R.: I will keep the test case deterministic for the demo.
+2026-10-04 18:15 | #design-review-offer | Ravi R.: The notes about a fictional signup wireframe are clear.
+2026-10-04 18:16 | #design-review-offer | Iris R.: There is no production data or real user information in this experiment.
+2026-10-04 18:17 | #design-review-offer | Ravi R.: I am heading off for now; leaving the notes in this thread.
+2026-10-04 18:18 | #design-review-offer | Iris R.: Happy to help review an onboarding flow. Anyone interested in a short pairing session?
+2026-10-19 18:00 | #devtools-active | Zara R.: Fictional demo conversation: exploring Postgres query profiling. All people, projects and examples here are invented.
+2026-10-19 18:01 | #devtools-active | Hugo R.: I have been prototyping slow query examples too.
+2026-10-19 18:02 | #devtools-active | Zara R.: My current snag is that the index is not used for small tables.
+2026-10-19 18:03 | #devtools-active | Hugo R.: Could we isolate it with an EXPLAIN plan from a toy database?
+2026-10-19 18:04 | #devtools-active | Zara R.: Yes, I made an EXPLAIN plan from a toy database with no private data.
+2026-10-19 18:05 | #devtools-active | Hugo R.: Please keep the input small enough to reproduce locally.
+2026-10-19 18:06 | #devtools-active | Zara R.: The first version of slow query examples only covers the happy path.
+2026-10-19 18:07 | #devtools-active | Hugo R.: I would separate correctness from performance measurements.
+2026-10-19 18:08 | #devtools-active | Zara R.: I wrote down the expected result before changing the implementation.
+2026-10-19 18:09 | #devtools-active | Hugo R.: For Postgres query profiling, a small comparison would be useful.
+2026-10-19 18:10 | #devtools-active | Zara R.: The baseline is saved alongside the fixture now.
+2026-10-19 18:11 | #devtools-active | Hugo R.: I can read the approach here, but have not run the code myself.
+2026-10-19 18:12 | #devtools-active | Zara R.: I tried a second example; the index is not used for small tables there as well.
+2026-10-19 18:13 | #devtools-active | Hugo R.: That suggests the input shape is not the only variable.
+2026-10-19 18:14 | #devtools-active | Zara R.: I will keep the test case deterministic for the demo.
+2026-10-19 18:15 | #devtools-active | Hugo R.: The notes about an EXPLAIN plan from a toy database are clear.
+2026-10-19 18:16 | #devtools-active | Zara R.: There is no production data or real user information in this experiment.
+2026-10-19 18:17 | #devtools-active | Hugo R.: I am heading off for now; leaving the notes in this thread.
+2026-10-19 18:18 | #devtools-active | Zara R.: I have the next plan ready and am comparing it with the baseline today.
+2026-10-03 18:00 | #community-wrapup | Esme R.: Fictional demo conversation: exploring peer mentoring circles. All people, projects and examples here are invented.
+2026-10-03 18:01 | #community-wrapup | Idris R.: I have been prototyping a buddy matching checklist too.
+2026-10-03 18:02 | #community-wrapup | Esme R.: My current snag is that the first meeting needs a clearer agenda.
+2026-10-03 18:03 | #community-wrapup | Idris R.: Could we isolate it with a fictional meeting checklist?
+2026-10-03 18:04 | #community-wrapup | Esme R.: Yes, I made a fictional meeting checklist with no private data.
+2026-10-03 18:05 | #community-wrapup | Idris R.: Please keep the input small enough to reproduce locally.
+2026-10-03 18:06 | #community-wrapup | Esme R.: The first version of a buddy matching checklist only covers the happy path.
+2026-10-03 18:07 | #community-wrapup | Idris R.: I would separate correctness from performance measurements.
+2026-10-03 18:08 | #community-wrapup | Esme R.: I wrote down the expected result before changing the implementation.
+2026-10-03 18:09 | #community-wrapup | Idris R.: For peer mentoring circles, a small comparison would be useful.
+2026-10-03 18:10 | #community-wrapup | Esme R.: The baseline is saved alongside the fixture now.
+2026-10-03 18:11 | #community-wrapup | Idris R.: I can read the approach here, but have not run the code myself.
+2026-10-03 18:12 | #community-wrapup | Esme R.: I tried a second example; the first meeting needs a clearer agenda there as well.
+2026-10-03 18:13 | #community-wrapup | Idris R.: That suggests the input shape is not the only variable.
+2026-10-03 18:14 | #community-wrapup | Esme R.: I will keep the test case deterministic for the demo.
+2026-10-03 18:15 | #community-wrapup | Idris R.: The notes about a fictional meeting checklist are clear.
+2026-10-03 18:16 | #community-wrapup | Esme R.: There is no production data or real user information in this experiment.
+2026-10-03 18:17 | #community-wrapup | Idris R.: I am heading off for now; leaving the notes in this thread.
+2026-10-03 18:18 | #community-wrapup | Esme R.: All set for the demo. Thanks!
