@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, type Health, type MemberStats } from '../api'
 import { useSession } from '../session'
 import { Badge, fmtTime } from './ui'
+import { Dropdown } from './Dropdown'
 
 export function MemberPicker() {
   const { memberId, setMemberId } = useSession()
@@ -14,21 +15,16 @@ export function MemberPicker() {
     }).catch(() => setMembers([]))
   }, [memberId, setMemberId])
   return (
-    <label className="flex min-w-0 items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       <span className="label">Viewing as</span>
-      <select
-        className="input min-w-0 flex-1 py-1.5 sm:w-56 sm:flex-none"
-        value={memberId ?? ''}
-        onChange={(e) => setMemberId(e.target.value ? Number(e.target.value) : null)}
-      >
-        {members.length === 0 && <option value="">No members</option>}
-        {members.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name}{m.is_seed ? ' · demo' : ''}
-          </option>
-        ))}
-      </select>
-    </label>
+      <Dropdown
+        className="min-w-0 flex-1 sm:w-56 sm:flex-none"
+        value={memberId}
+        placeholder="No members"
+        options={members.map((m) => ({ value: m.id, label: m.name, hint: m.is_seed ? 'demo' : undefined }))}
+        onChange={(v) => setMemberId(v)}
+      />
+    </div>
   )
 }
 
