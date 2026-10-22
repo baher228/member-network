@@ -13,7 +13,7 @@ export default function Evaluation() {
     setRunning(true); setErr(null)
     try { setData(await api.runEval()) } catch (e) { setErr(e instanceof Error ? e.message : String(e)) } finally { setRunning(false) }
   }
-  const best = data ? Math.max(...data.results.map((r) => r.hit_rate)) : 0
+  const slices = data ? Array.from(new Set(data.results.map((r) => r.slice ?? 'all'))) : []
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader eyebrow="Offline evaluation · demo data" title="Does the recommender beat a baseline?">
@@ -27,23 +27,33 @@ export default function Evaluation() {
           <Card className="mb-4 p-4 text-sm text-fg/85">
             Hold out {Math.round(data.holdout_fraction * 100)}% of each seed member's likes ({data.n_holdout} likes, {data.n_test_users} members), train on the rest, and check whether the held-out people appear in each model's top {data.k}. Synthetic data with planted cluster structure — useful for sanity, not a claim about real communities.
           </Card>
-          <Card className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead><tr className="border-b border-line text-left">
-                {['Model', `Hit-rate@${data.k}`, '', `Precision@${data.k}`].map((h, i) => <th key={i} className="label px-4 py-2.5 font-normal">{h}</th>)}
-              </tr></thead>
-              <tbody>
-                {data.results.map((r) => (
-                  <tr key={r.model} className="border-b border-line/60 last:border-0">
-                    <td className="px-4 py-3">{names[r.model] ?? r.model}{r.hit_rate === best && <span className="label ml-2 text-ok/80">best</span>}</td>
-                    <td className="px-4 py-3 font-mono">{r.hit_rate.toFixed(3)}</td>
-                    <td className="w-40 px-4 py-3"><Bar value={r.hit_rate} /></td>
-                    <td className="px-4 py-3 font-mono">{r.precision.toFixed(3)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+          {slices.map((sl) => {
+            const rows = data.results.filter((r) => (r.slice ?? 'all') === sl)
+            const best = Math.max(...rows.map((r) => r.hit_rate))
+            const pm = (v: number, sd?: number) => `${v.toFixed(3)}${sd != null ? ` ± ${sd.toFixed(3)}` : ''}`
+            return (
+              <div key={sl} className="mb-4">
+                <Label className="mb-2">{sl === 'cold-start' ? 'Cold-start slice · 2 training likes per user' : 'All evaluated users'}</Label>
+                <Card className="overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-sm">
+                    <thead><tr className="border-b border-line text-left">
+                      {['Model', `Hit-rate@${data.k}`, '', `Precision@${data.k}`].map((h, i) => <th key={i} className="label px-4 py-2.5 font-normal">{h}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.model} className="border-b border-line/60 last:border-0">
+                          <td className="px-4 py-3">{names[r.model.split(' ·')[0]] ?? r.model}{r.hit_rate === best && <span className="label ml-2 text-ok/80">best</span>}</td>
+                          <td className="whitespace-nowrap px-4 py-3 font-mono">{pm(r.hit_rate, r.hit_rate_std)}</td>
+                          <td className="w-32 px-4 py-3"><Bar value={r.hit_rate} /></td>
+                          <td className="whitespace-nowrap px-4 py-3 font-mono">{pm(r.precision, r.precision_std)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+              </div>
+            )
+          })}
           {data.notes.length > 0 && (
             <div className="mt-4"><Label className="mb-2">Notes</Label><ul className="space-y-1 text-sm text-fg/85">{data.notes.map((n, i) => <li key={i}>· {n}</li>)}</ul></div>
           )}

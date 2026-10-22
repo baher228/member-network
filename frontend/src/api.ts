@@ -31,7 +31,7 @@ export type SourceStatus = { source: string; status: 'live' | 'cached' | 'failed
 export type SpeakerResponse = { topic: string; items: SpeakerCandidate[]; sources: SourceStatus[] }
 export type EvalResponse = {
   computed_at: string; holdout_fraction: number; k: number; n_test_users: number; n_holdout: number
-  results: { model: string; hit_rate: number; precision: number }[]; notes: string[]
+  results: { model: string; hit_rate: number; precision: number; hit_rate_std?: number; precision_std?: number; slice?: 'all' | 'cold-start' }[]; notes: string[]
 }
 export type Health = {
   db: boolean; llm: { available: boolean; model: string | null; reason: string | null }
@@ -42,6 +42,18 @@ export type GraphResponse = {
   edges: { source: number; target: number; kind: string }[]
   metrics: { density: number; n_isolated: number; avg_degree: number }
 }
+
+export type ThreadResult = {
+  thread_id: string; title: string; last_message_at: string; n_messages: number; n_participants: number
+  days_silent: number; ended_with_question: boolean; unanswered_by: string | null; worth_reviving: boolean
+  score: number; reasons: string[]; nudge: string | null; llm_used: boolean
+  status: 'drafted' | 'skipped' | 'failed'; error: string | null
+}
+export type ThreadAnalysis = {
+  run_id: number; parsed_lines: number; skipped_lines: number; threads: ThreadResult[]
+  log: { step: string; ok: boolean; detail: string }[]
+}
+export type ThreadRun = { id: number; created_at: string; n_threads: number; n_revive: number; llm_status: string }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -77,5 +89,8 @@ export const api = {
     req<SpeakerResponse>(`/speakers?topic=${encodeURIComponent(topic)}&include_external=${external}`),
   evaluation: () => req<EvalResponse>('/eval'),
   runEval: () => post<EvalResponse>('/eval/run'),
+  threadSample: () => req<{ log_text: string; suggested_now?: string }>('/threads/sample'),
+  analyzeThreads: (log_text: string, now?: string) => post<ThreadAnalysis>('/threads/analyze', now ? { log_text, now } : { log_text }),
+  threadRuns: () => req<ThreadRun[]>('/threads/runs'),
   graph: () => req<GraphResponse>('/graph'),
 }

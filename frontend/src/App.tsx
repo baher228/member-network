@@ -7,12 +7,14 @@ import Intros from './pages/Intros'
 import Speakers from './pages/Speakers'
 import Members from './pages/Members'
 import Evaluation from './pages/Evaluation'
+import Threads from './pages/Threads'
 
 const nav = [
   ['/join', 'Questionnaire'],
   ['/for-you', 'For you'],
   ['/intros', 'Intros'],
   ['/speakers', 'Speakers'],
+  ['/threads', 'Threads'],
   ['/members', 'Members'],
   ['/eval', 'Evaluation'],
 ] as const
@@ -53,6 +55,7 @@ export default function App() {
               <Route path="/for-you" element={<ForYou />} />
               <Route path="/intros" element={<Intros />} />
               <Route path="/speakers" element={<Speakers />} />
+              <Route path="/threads" element={<Threads />} />
               <Route path="/members" element={<Members />} />
               <Route path="/eval" element={<Evaluation />} />
               <Route path="*" element={<Navigate to="/for-you" replace />} />
