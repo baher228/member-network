@@ -1,0 +1,23 @@
+@font-face { font-family: 'Geist Sans'; src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Geist Mono'; src: url('../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { overflow-x: hidden; background: #0a0a0a; color: #ededed; min-height: 100%; }
+body { font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+* { border-color: #292929; }
+::selection { background: rgba(255,255,255,.15); }
+
+@layer components {
+  .label { @apply font-mono text-[11px] uppercase tracking-[0.08em] text-muted; }
+  .card { @apply rounded-xl border border-line bg-card; }
+  .input { @apply w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted/70 outline-none transition-colors duration-150 focus:border-[#444]; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm transition-colors duration-150 hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn border-fg bg-fg text-bg hover:bg-[#d4d4d4]; }
+  .fade-in { animation: fadein 180ms ease-out; }
+}
+@keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

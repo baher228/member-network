@@ -4,7 +4,7 @@ dist/
 __pycache__/
 *.pyc
 .pytest_cache/
-.env
-.env.local
 *.log
 .DS_Store
+data/private/
+config.bat
